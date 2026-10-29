@@ -1,72 +1,95 @@
 @import "tailwindcss";
 
 /*
- * PayTrace design tokens. One accent (blue) for interaction, reserved status colours for state,
- * warm neutrals for everything else. Dark mode is its own set of steps, not an inversion.
+ * PayTrace design tokens. Palette: vermilion #c54836, cream #f6f8ed, plum #1c032b, apricot #e29454.
+ * Vermilion is the interaction accent and brand, plum carries text and the sidebar, apricot marks
+ * the current place. Status colours stay reserved for state. Dark mode is its own set of steps.
  */
 :root {
   color-scheme: light;
-  --page: #f6f6f3;
-  --surface: #fcfcfb;
-  --surface-2: #f0efec;
-  --surface-sunken: #ebeae6;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #6b6a65;
-  --line: #e1e0d9;
-  --line-strong: #c3c2b7;
-  --accent: #1c5cab;
-  --accent-hover: #184f95;
+  --page: #f6f8ed;
+  --surface: #fcfdf8;
+  --surface-2: #eef0e2;
+  --surface-sunken: #e8ead9;
+  --ink: #1c032b;
+  --ink-2: #4b3d55;
+  --ink-3: #6a5e72;
+  --line: #e2e3d4;
+  --line-strong: #c4c5b2;
+  --accent: #b8402f;
+  --accent-hover: #9c3424;
   --accent-ink: #ffffff;
-  --accent-soft: #e5effb;
-  --focus: #2a78d6;
-  --series-1: #2a78d6;
-  --series-1-soft: #b7d3f6;
+  --accent-soft: #f9e7e1;
+  --focus: #1c032b;
+  --brand: #b8402f;
+  --brand-ink: #f6f8ed;
+  --nav: #1c032b;
+  --nav-ink: #f6f8ed;
+  --nav-ink-2: #cfc4d6;
+  --nav-ink-3: #a594b0;
+  --nav-hover: #2e1340;
+  --nav-line: #3a2049;
+  --nav-active: #e29454;
+  --nav-active-ink: #1c032b;
+  --nav-focus: #e29454;
+  --series-1: #c54836;
+  --series-1-soft: #f2c3b8;
   --good: #086b08;
   --good-soft: #e3f3e3;
   --warning: #8a5a00;
   --warning-mark: #fab219;
   --warning-soft: #fdf3dc;
   --serious: #a8461d;
-  --serious-mark: #ec835a;
+  --serious-mark: #e29454;
   --serious-soft: #fbe9e1;
-  --critical: #b42d2d;
-  --critical-mark: #d03b3b;
-  --critical-soft: #f9e3e3;
-  --neutral-soft: #ecebe7;
+  --critical: #a3123a;
+  --critical-mark: #d0315a;
+  --critical-soft: #f9e1e8;
+  --neutral-soft: #ecede0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #232321;
-    --surface-sunken: #121211;
-    --ink: #f0efec;
-    --ink-2: #c3c2b7;
-    --ink-3: #a3a29a;
-    --line: #2c2c2a;
-    --line-strong: #45453f;
-    --accent: #5598e7;
-    --accent-hover: #6da7ec;
-    --accent-ink: #0b0b0b;
-    --accent-soft: #15283f;
-    --focus: #86b6ef;
-    --series-1: #3987e5;
-    --series-1-soft: #1c3a5e;
+    --page: #12021c;
+    --surface: #1e0b2a;
+    --surface-2: #2a1537;
+    --surface-sunken: #0d0114;
+    --ink: #f6f8ed;
+    --ink-2: #d6cfd9;
+    --ink-3: #a99fb0;
+    --line: #33203f;
+    --line-strong: #4d3859;
+    --accent: #e29454;
+    --accent-hover: #eaa770;
+    --accent-ink: #1c032b;
+    --accent-soft: #3a1f2a;
+    --focus: #f0b583;
+    --brand: #b8402f;
+    --brand-ink: #f6f8ed;
+    --nav: #0d0114;
+    --nav-ink: #f6f8ed;
+    --nav-ink-2: #cfc4d6;
+    --nav-ink-3: #a594b0;
+    --nav-hover: #24102f;
+    --nav-line: #2e1a3a;
+    --nav-active: #e29454;
+    --nav-active-ink: #1c032b;
+    --nav-focus: #f0b583;
+    --series-1: #e26a55;
+    --series-1-soft: #4a1e22;
     --good: #3fbf3f;
     --good-soft: #15291a;
     --warning: #f5c04a;
     --warning-mark: #fab219;
     --warning-soft: #2e2512;
     --serious: #f09a76;
-    --serious-mark: #ec835a;
+    --serious-mark: #e29454;
     --serious-soft: #331d14;
-    --critical: #f07b7b;
-    --critical-mark: #d03b3b;
-    --critical-soft: #351818;
-    --neutral-soft: #2a2a28;
+    --critical: #f2789a;
+    --critical-mark: #d0315a;
+    --critical-soft: #3a1424;
+    --neutral-soft: #2a1a33;
   }
 }
 
@@ -84,6 +107,16 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-nav: var(--nav);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-ink-2: var(--nav-ink-2);
+  --color-nav-ink-3: var(--nav-ink-3);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-line: var(--nav-line);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-ink: var(--nav-active-ink);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warning: var(--warning);
@@ -112,6 +145,10 @@ body {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 4px;
+}
+/* The plum sidebar and vermilion sign-in page need a focus ring that shows on them. */
+.on-dark :focus-visible {
+  outline-color: var(--nav-focus);
 }
 
 .tabular {

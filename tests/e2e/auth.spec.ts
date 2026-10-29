@@ -4,8 +4,8 @@ test.describe("signed out", () => {
   test("protected pages redirect to sign in and return afterwards", async ({ page }) => {
     await page.goto("/exceptions?status=OPEN");
     await expect(page).toHaveURL(/\/login\?next=%2Fexceptions/);
-    await page.getByLabel("Work email").fill("analyst@demo.paytrace.test");
-    await page.getByLabel("Password").fill("PayTrace-Demo-2026");
+    await page.getByLabel("Work email").fill("analyst@demo.test");
+    await page.getByLabel("Password").fill("analyst");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByRole("heading", { name: "Exceptions", level: 1 })).toBeVisible();
     await expect(page).toHaveURL(/\/exceptions\?status=OPEN/);
@@ -13,7 +13,7 @@ test.describe("signed out", () => {
 
   test("a wrong password shows a generic error", async ({ page }) => {
     await page.goto("/login");
-    await page.getByLabel("Work email").fill("viewer@demo.paytrace.test");
+    await page.getByLabel("Work email").fill("viewer@demo.test");
     await page.getByLabel("Password").fill("not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByRole("alert").filter({ hasText: "Email or password is incorrect." })).toBeVisible();
@@ -21,8 +21,8 @@ test.describe("signed out", () => {
 
   test("an open redirect in ?next is ignored", async ({ page }) => {
     await page.goto("/login?next=//evil.example/");
-    await page.getByLabel("Work email").fill("viewer@demo.paytrace.test");
-    await page.getByLabel("Password").fill("PayTrace-Demo-2026");
+    await page.getByLabel("Work email").fill("viewer@demo.test");
+    await page.getByLabel("Password").fill("viewer");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByRole("heading", { name: "Reconciliation overview" })).toBeVisible();
     expect(new URL(page.url()).host).toBe(new URL(test.info().project.use.baseURL!).host);
@@ -41,8 +41,8 @@ test.describe("signed out", () => {
 
   test("the session cookie is host-only, secure and httpOnly", async ({ page, context }) => {
     await page.goto("/login");
-    await page.getByLabel("Work email").fill("viewer@demo.paytrace.test");
-    await page.getByLabel("Password").fill("PayTrace-Demo-2026");
+    await page.getByLabel("Work email").fill("viewer@demo.test");
+    await page.getByLabel("Password").fill("viewer");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByRole("heading", { name: "Reconciliation overview" })).toBeVisible();
     const cookie = (await context.cookies()).find((c) => c.name.includes("paytrace_session"))!;

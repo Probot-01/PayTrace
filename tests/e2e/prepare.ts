@@ -16,7 +16,8 @@ async function prepare() {
 
   const env: NodeJS.ProcessEnv = { ...process.env, DATABASE_URL: url, APP_URL: "http://localhost", NODE_ENV: "development", LOG_LEVEL: "warn" };
   execFileSync("node", ["scripts/migrate.mjs"], { env, stdio: "inherit" });
-  execFileSync("npx", ["tsx", "--tsconfig", "tsconfig.json", "scripts/seed-demo.ts"], { env, stdio: "inherit" });
+  // tsx's CLI through the current node binary: spawning "npx" directly fails on Windows (it is npx.cmd).
+  execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "tsconfig.json", "scripts/seed-demo.ts"], { env, stdio: "inherit" });
 
   if (!existsSync(".next/standalone/server.js")) throw new Error("Run `npm run build` before the end-to-end tests.");
   cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });

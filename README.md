@@ -2,31 +2,195 @@
 
 PayTrace reconciles digital payments and detects failures for Indian payment rails: UPI, debit and credit cards, NEFT and RTGS.
 
-It compares the records that every participant in a payment keeps (switch, issuing bank, acquiring bank, merchant and settlement). It sorts every disagreement into one of nine exception categories, names where the payment broke, and puts the RBI deadline on each case. Analysts then work the cases under maker-checker control.
+Every participant in a payment keeps its own record: the switch, the issuing bank, the acquiring bank, the merchant and settlement. PayTrace compares those records and sorts every disagreement into one of nine exception categories. It also names where the payment broke and puts the RBI deadline on each case. Analysts then work the cases under maker-checker control, and supervisors approve the high-value ones.
 
 A built-in simulator generates realistic business days with injected failures. Because it knows the ground truth, it can score how accurately the reconciliation engine detects them.
 
 ---
 
-## Contents
+## Quick start
 
-1. [What it does](#what-it-does)
-2. [Requirement to feature mapping](#requirement-to-feature-mapping)
-3. [Architecture](#architecture)
-4. [Stack and why](#stack-and-why)
-5. [Data model and migrations](#data-model-and-migrations)
-6. [Reconciliation rules](#reconciliation-rules)
-7. [Getting started (local)](#getting-started-local)
-8. [Environment variables](#environment-variables)
-9. [Deployment](#deployment)
-10. [Testing and results](#testing-and-results)
-11. [Security](#security)
-12. [Accessibility](#accessibility)
-13. [Performance](#performance)
-14. [Research and sources](#research-and-sources)
-15. [Known limitations](#known-limitations)
+You need Node.js 22.12+ and Docker (or any PostgreSQL 14+ server).
+
+```bash
+npm ci
+docker run -d --name paytrace-db -e POSTGRES_PASSWORD=paytrace -e POSTGRES_DB=paytrace -p 5433:5432 postgres:16
+cp .env.example .env
+# In .env set:
+#   DATABASE_URL=postgres://postgres:paytrace@localhost:5433/paytrace
+#   TRUSTED_PROXY_HOPS=0
+npm run db:migrate
+npm run seed:demo
+npm run dev
+```
+
+Open http://localhost:3000 and sign in with any account below. The seed also loads a simulated business day that has already been reconciled, so every screen has data.
+
+| Role       | Email                  | Password     |
+| ---------- | ---------------------- | ------------ |
+| Admin      | `admin@demo.test`      | `admin`      |
+| Supervisor | `supervisor@demo.test` | `supervisor` |
+| Analyst    | `analyst@demo.test`    | `analyst`    |
+| Viewer     | `viewer@demo.test`     | `viewer`     |
+
+> **Demo only.** These accounts and their short passwords exist for local evaluation. Never seed them into an environment that holds real payment data. See [Real installations](#real-installations).
 
 ---
+
+## Contents
+
+1. [Quick start](#quick-start)
+2. [Logins and roles](#logins-and-roles)
+3. [What it does](#what-it-does)
+4. [Requirement to feature mapping](#requirement-to-feature-mapping)
+5. [Architecture](#architecture)
+6. [Stack and why](#stack-and-why)
+7. [Data model and migrations](#data-model-and-migrations)
+8. [Reconciliation rules](#reconciliation-rules)
+9. [Getting started (local)](#getting-started-local)
+10. [Environment variables](#environment-variables)
+11. [Deployment](#deployment)
+12. [Testing and results](#testing-and-results)
+13. [Security](#security)
+14. [Accessibility and design](#accessibility-and-design)
+15. [Performance](#performance)
+16. [Troubleshooting](#troubleshooting)
+17. [Research and sources](#research-and-sources)
+18. [Known limitations](#known-limitations)
+
+---
+
+## Logins and roles
+
+PayTrace has four roles, from least to most access. Each role can do everything the role before it can, plus more:
+
+**viewer → analyst → supervisor → admin**
+
+### Demo accounts
+
+`npm run seed:demo` creates one account per role. Each password is the role name.
+
+| Role       | Email                  | Password     | Demo name         | In one line                                                          |
+| ---------- | ---------------------- | ------------ | ----------------- | -------------------------------------------------------------------- |
+| Admin      | `admin@demo.test`      | `admin`      | Asha Admin        | Runs the system: users, settings and deletions.                      |
+| Supervisor | `supervisor@demo.test` | `supervisor` | Suresh Supervisor | Checks the analysts' work: approves, sends back and reopens cases.   |
+| Analyst    | `analyst@demo.test`    | `analyst`    | Anita Analyst     | Does the daily reconciliation work: files, runs and exceptions.      |
+| Viewer     | `viewer@demo.test`     | `viewer`     | Vikram Viewer     | Looks but does not touch: dashboards, cases, traces and CSV exports. |
+
+To give every demo account the same password instead, run `npm run seed:demo -- --password "<password>"` or set `DEMO_PASSWORD`. The seed never changes accounts that already exist. If simulated data is already present, it skips creating another demo day, so it is safe to run again.
+
+### What each person does
+
+#### Viewer: read-only oversight
+
+For auditors, risk and compliance staff, business owners and anyone else who needs visibility without the power to change anything.
+
+- Watch the **dashboard**: volumes, success and failure counts, reconciliation rate, exceptions by category and failure point, value affected and the manual-investigation queue.
+- Browse and filter **exceptions**, open any case to read the evidence and history, and **export the list to CSV**.
+- Use **transaction trace** to follow one payment across every participant, run and switch hop.
+- See reconciliation runs, participant files (including downloads and the CSV template), simulations and the industry context page.
+- Manage their own account: change their password and sign out other devices.
+
+A viewer cannot change any data. The case-workflow buttons, upload forms and admin pages are not available to them, and the server refuses those actions anyway.
+
+#### Analyst: the daily reconciliation work
+
+The operations team member who keeps the books matched. An analyst can do everything a viewer can, and also:
+
+1. **Bring in data.** Upload each participant's daily CSV file (switch, issuer, acquirer, merchant, settlement), or generate a simulated day in the **Simulator**.
+2. **Run reconciliation.** Choose a business date and the files to compare, then start a run. It executes in the background, and the results show per-transaction verdicts and statistics.
+3. **Work the exceptions.** For each break:
+   - assign it (to themselves or a colleague) and **start review**;
+   - read the suspected cause, recommended action, deadline and side-by-side participant records;
+   - add comments as they investigate;
+   - **resolve** it with a resolution code and a note, or **dismiss** it as not a break, with a reason.
+4. **Respect the approval threshold.** If the value affected is **₹50,000 or more** (configurable), the analyst's resolution or dismissal does not close the case. It goes to **Pending approval** and waits for a supervisor.
+
+Analysts work to the RBI and internal deadlines shown on every case. The dashboard counts the cases that are past their deadline and the compensation accrued.
+
+#### Supervisor: the checker in maker-checker
+
+The team lead who signs off on the analysts' work. A supervisor can do everything an analyst can, and also:
+
+- **Approve** a pending resolution or dismissal, which closes the case.
+- **Send back** a pending proposal with a note explaining what is missing. The case returns to _In review_, and the proposed resolution is cleared.
+- **Reopen** a resolved or dismissed case with a reason, which returns it to _In review_.
+- Read the **audit log**: every sign-in, failed sign-in and change to users, settings, files, runs and exceptions, with who did it and from which IP.
+
+Two rules apply to approvals:
+
+- **Four-eyes rule:** nobody can approve their own proposal, so a different supervisor or admin must approve it.
+- A supervisor's own resolutions close immediately, even above the threshold, because they already hold approval authority.
+
+#### Admin: system owner
+
+The person responsible for the platform. An admin can do everything a supervisor can, and also:
+
+- **Manage users:** invite people, assign or change roles, deactivate accounts, and issue one-time password-reset links (invites last 72 hours, resets 30 minutes). Links are emailed when SMTP is configured; otherwise the admin copies them from the screen.
+- **Change settings:** amount-matching tolerance, duplicate-request window, credit SLAs per payment method, the high-value marker, the maker-checker approval threshold, and the RBI repo rate used for NEFT/RTGS penal interest.
+- **Delete** participant files, reconciliation runs and simulations. A file that a run still uses cannot be deleted.
+
+Safety guards: admins cannot change their own role or deactivate themselves, and the system always keeps at least one active admin.
+
+### Permissions at a glance
+
+| Capability                                                        | Viewer | Analyst | Supervisor | Admin |
+| ----------------------------------------------------------------- | :----: | :-----: | :--------: | :---: |
+| Dashboard, exceptions, runs, files, simulations, trace, insights  |   ✓    |    ✓    |     ✓      |   ✓   |
+| Export exceptions to CSV, download files and the template         |   ✓    |    ✓    |     ✓      |   ✓   |
+| Own account: change password, sign out other sessions             |   ✓    |    ✓    |     ✓      |   ✓   |
+| Upload participant files                                          |        |    ✓    |     ✓      |   ✓   |
+| Generate simulations, start reconciliation runs                   |        |    ✓    |     ✓      |   ✓   |
+| Assign, comment, start review, resolve and dismiss exceptions     |        |    ✓    |     ✓      |   ✓   |
+| Close high-value exceptions (at or above the threshold) directly  |        |         |     ✓      |   ✓   |
+| Approve or send back proposals (never your own)                   |        |         |     ✓      |   ✓   |
+| Reopen resolved or dismissed exceptions                           |        |         |     ✓      |   ✓   |
+| Read the audit log                                                |        |         |     ✓      |   ✓   |
+| Invite users, change roles, deactivate users, issue reset links   |        |         |            |   ✓   |
+| Change settings (tolerances, SLAs, approval threshold, repo rate) |        |         |            |   ✓   |
+| Delete files, runs and simulations                                |        |         |            |   ✓   |
+
+The single source of truth is `src/server/auth/permissions.ts`. Every API route and service checks it on the server, so hiding a button is never the only protection.
+
+### Exception lifecycle
+
+```mermaid
+stateDiagram-v2
+  [*] --> Open: a reconciliation run finds a break
+  Open --> InReview: start review (analyst+)
+  Open --> Resolved: resolve or dismiss below the threshold (analyst+)
+  InReview --> Resolved: resolve or dismiss below the threshold (analyst+)
+  Open --> PendingApproval: analyst resolves or dismisses at or above the threshold
+  InReview --> PendingApproval: analyst resolves or dismisses at or above the threshold
+  PendingApproval --> Resolved: approve (supervisor+, not the proposer)
+  PendingApproval --> InReview: send back with a note (supervisor+)
+  Resolved --> InReview: reopen with a reason (supervisor+)
+```
+
+In the diagram, _Resolved_ also stands for _Dismissed_: both are closed states, and the same rules apply. Supervisors and admins skip _Pending approval_. Assignment and comments are available while a case is open. Every change is versioned, so if two people edit the same case at once, the second one is asked to reload instead of overwriting the first.
+
+### Try the maker-checker flow (5 minutes)
+
+1. Sign in as **analyst@demo.test** / `analyst`. Open **Exceptions**, set **Sort by** to _Amount affected_, and open a case worth ₹50,000 or more.
+2. Click **Start review**, then **Resolve…**. Pick a resolution, write a note and submit. The case moves to **Pending approval**.
+3. Sign out, then sign in as **supervisor@demo.test** / `supervisor`. Open the same case and click **Approve**, or **Send back…** with a note.
+4. Still as supervisor, open **Audit log** to see both actions recorded with actor, time and IP.
+5. Sign in as **viewer@demo.test** / `viewer` and open the same case. It shows _You have read-only access._ instead of action buttons.
+6. Sign in as **admin@demo.test** / `admin`. Open **Settings** to change the approval threshold, or **Users** → **Invite a person** to add someone.
+
+### Real installations
+
+Do not run `seed:demo` against real data. It refuses to run when `NODE_ENV=production` unless `--allow-production` is passed, and that flag is meant only for demo environments.
+
+1. Create the first administrator. The command prints a one-time link to set the password:
+
+   ```bash
+   npm run create-admin -- --email ops@yourbank.example --name "Ops Lead"
+   ```
+
+2. Sign in as that admin and invite everyone else from **Users** with the least role they need.
+3. Invited users set their own password from the invite link (valid for 72 hours). Passwords must be 12–128 characters, and common passwords are refused.
+4. After 10 failed sign-ins an account is locked for 15 minutes. Admins can issue a reset link at any time.
 
 ## What it does
 
@@ -42,14 +206,7 @@ A built-in simulator generates realistic business days with injected failures. B
 | **Administration**      | <ul><li>Users and roles, with invites and reset links (emailed if SMTP is set)</li><li>Settings: matching tolerances, SLAs, approval threshold and repo rate</li><li>Append-only audit log</li><li>Account page: change password, see and revoke sessions</li></ul>                                                                                                                                                   |
 | **Industry context**    | In-app research page with 13 cited sources, mapping the eight recent industry issues to features.                                                                                                                                                                                                                                                                                                                     |
 
-Roles, from least to most access:
-
-- **viewer**: read and export.
-- **analyst**: work exceptions, upload files, run reconciliations and simulations.
-- **supervisor**: approve, reopen and read the audit log.
-- **admin**: users, settings and deletions.
-
-Every API route and service checks the role on the server.
+Every page and API route checks the signed-in role on the server. See [Logins and roles](#logins-and-roles) for who can do what.
 
 ## Requirement to feature mapping
 
@@ -157,31 +314,20 @@ Two more checks run across payments:
 
 ## Getting started (local)
 
-Requirements: Node.js 22.12+ and PostgreSQL 14+ (16 recommended).
+Requirements: Node.js 22.12+ and PostgreSQL 14+ (16 recommended). The [Quick start](#quick-start) runs PostgreSQL in Docker; any existing server works too.
 
 ```bash
 npm ci
-cp .env.example .env            # set DATABASE_URL (and APP_URL if not localhost:3000)
-createdb paytrace               # or create it in your Postgres tool
+cp .env.example .env            # set DATABASE_URL (and APP_URL if not http://localhost:3000)
+createdb paytrace               # or create the database in your Postgres tool
 npm run db:migrate
-npm run seed:demo               # optional: 4 demo users + a reconciled demo day
-npm run dev                     # http://localhost:3000 (worker runs embedded)
+npm run seed:demo               # optional: the 4 demo accounts + a reconciled demo day
+npm run dev                     # http://localhost:3000 (the worker runs embedded)
 ```
 
-`seed:demo` creates these accounts:
+The npm scripts `db:migrate`, `seed:demo`, `create-admin` and `worker` read `.env` automatically. For a plain local setup, set `TRUSTED_PROXY_HOPS=0`, because no proxy sits in front of the app.
 
-- `admin@demo.paytrace.test`
-- `supervisor@demo.paytrace.test`
-- `analyst@demo.paytrace.test`
-- `viewer@demo.paytrace.test`
-
-They all use the password `PayTrace-Demo-2026` (override it with `--password` or `DEMO_PASSWORD`). The script refuses to run with `NODE_ENV=production` unless `--allow-production` is passed. Never use demo accounts with real data.
-
-For a real installation, create the first administrator instead. It prints a one-time link to set the password:
-
-```bash
-npm run create-admin -- --email ops@yourbank.example --name "Ops Lead"
-```
+Demo accounts and real administrators are covered in [Logins and roles](#logins-and-roles).
 
 To run the production build locally: `npm run build && npm start`.
 
@@ -214,19 +360,29 @@ Test-only variables:
 - `--target web`: the standalone Next.js server, non-root, with a health check on `/api/health`. 432 MB uncompressed.
 - `--target tools`: migrations, the worker and the admin scripts.
 
-To try the stack with Docker Compose:
+To try the production-like stack with Docker Compose:
 
 ```bash
 cp .env.example .env    # set POSTGRES_PASSWORD; APP_URL=http://localhost:3000
 docker compose up --build -d
-docker compose run --rm migrate npm run create-admin -- --email you@example.com --name "Your Name"
 ```
+
+Then add users: a real administrator, or the demo accounts for an evaluation:
+
+```bash
+docker compose run --rm migrate npm run create-admin -- --email you@example.com --name "Your Name"
+docker compose run --rm migrate npx tsx --tsconfig tsconfig.json scripts/seed-demo.ts --allow-production   # demo only
+```
+
+The images run with `NODE_ENV=production`, so the session cookie is `Secure`. Chrome and Edge accept it on `http://localhost`; other browsers may need HTTPS.
+
+To run compose next to a dev server, override the port and origin in the shell, for example `WEB_PORT=3001 APP_URL=http://localhost:3001 docker compose up --build -d`. Stop the stack with `docker compose down`, or `docker compose down -v` to delete its data as well. Compose needs `POSTGRES_PASSWORD` set for every command, including `down`.
 
 Compose starts these services:
 
-1. `db` (PostgreSQL 16 with a volume).
+1. `db` (PostgreSQL 16 with a volume, not published on the host).
 2. `migrate`, which runs once.
-3. `web` (port 3000).
+3. `web` (port 3000, or `WEB_PORT`).
 4. `worker`, which you can scale with `docker compose up -d --scale worker=3`.
 
 Both images were built and run in this environment. A simulation and a reconciliation went through the separate worker container with 100% recall.
@@ -268,7 +424,9 @@ Both images were built and run in this environment. A simulation and a reconcili
 | ----------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Unit        | `npm test`                          | Every engine rule and category, rule ordering and invariants, TAT dates and compensation, CSV parsing, validation, formula-injection escaping and Luhn check, money parsing and formatting, open-redirect guard, permission monotonicity, Argon2id, tokens, simulator determinism and limits, simulator→engine ground truth (5,000 txns), 100k-transaction volume                                                   | **74 passed** (7 files, ~10 s)  |
 | Integration | `npm run test:integration`          | Real PostgreSQL: login, generic errors, lockout, throttling, inactive users, reset tokens (single-use, expiry, sign-out everywhere), audit trigger blocks UPDATE and DELETE, simulate→reconcile through the job queue with 100% recall, maker-checker and four-eyes rules, stale-version 409, API 401/403 per role, CSRF rejection, upload/dedupe/row errors/RBAC, CSV export, 100k volume                          | **31 passed** (3 files, ~44 s)  |
-| End-to-end  | `npm run build && npm run test:e2e` | Production server: sign-in and return-to, open-redirect guard, security headers, cookie flags, analyst→supervisor approval journey, viewer read-only, admin refusal, upload with row errors, simulate→reconcile→accuracy, trace, filters and CSV export, user invite. axe WCAG 2.2 AA on every page (light, plus dark samples), 375 px reflow, mobile menu, skip link. Fails on any console error or CSP violation. | **40 passed** (~1.5 min)        |
+| End-to-end  | `npm run build && npm run test:e2e` | Production server: sign-in and return-to, open-redirect guard, security headers, cookie flags, analyst→supervisor approval journey, viewer read-only, admin refusal, upload with row errors, simulate→reconcile→accuracy, trace, filters and CSV export, user invite. axe WCAG 2.2 AA on every page (light, plus dark samples), 375 px reflow, mobile menu, skip link. Fails on any console error or CSP violation. | **40 passed** (~2 min)          |
+
+The end-to-end tests sign in with the demo accounts. They drop and recreate their own database (`E2E_DATABASE_URL`) on every run, so they never touch your working data. Install the browser once with `npx playwright install chromium`.
 
 The end-to-end tests found seven real bugs, all fixed:
 
@@ -309,7 +467,7 @@ Mapped to the OWASP Top 10:
 - **Secrets and logs:** configuration comes from the environment and is validated. Logs redact passwords, tokens, cookies and authorization headers. `.env` is gitignored.
 - **Dependencies:** `npm audit` reports 0 vulnerabilities, and CI fails on high-severity ones.
 
-## Accessibility
+## Accessibility and design
 
 Target: **WCAG 2.2 AA**, checked automatically with axe-core on every page and in dark mode.
 
@@ -320,6 +478,17 @@ Target: **WCAG 2.2 AA**, checked automatically with axe-core on every page and i
 - Tables scroll inside focusable regions, and pages reflow at 375 px.
 - Visible focus, `prefers-reduced-motion` and forced-colours support.
 - Native `<dialog>` for confirmations; the mobile menu closes with Escape.
+
+**Colour palette.** Four brand colours, defined as design tokens in `src/app/globals.css`:
+
+| Colour    | Hex       | Used for                                                                       |
+| --------- | --------- | ------------------------------------------------------------------------------ |
+| Vermilion | `#c54836` | Brand mark; buttons, links and chart bars (`#b8402f` wherever text sits on it) |
+| Cream     | `#f6f8ed` | Page background in the light theme; text on vermilion and plum                 |
+| Plum      | `#1c032b` | Body text, the sidebar, and the page background in the dark theme              |
+| Apricot   | `#e29454` | The current page in the sidebar, and buttons in the dark theme                 |
+
+Status colours (good, warning, serious, critical) stay separate from the brand colours. Critical is a crimson, so it is never mistaken for the vermilion accent. Every pairing passes axe's WCAG 2.2 AA contrast checks in both themes.
 
 ## Performance
 
@@ -338,6 +507,17 @@ Several things keep this fast:
 - Bulk inserts use `COPY`. Replacing batched `INSERT`s cut the 100k simulation from 119 s to 18.5 s.
 - Heavy work runs off the request path in the worker.
 - Lists are paginated server-side and backed by indexes.
+
+## Troubleshooting
+
+| Symptom                                            | Fix                                                                                                                                                                          |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL is not set`                          | Create `.env` from `.env.example`, and run the npm scripts from the project folder.                                                                                          |
+| "Email or password is incorrect" with a demo login | Make sure you seeded this database (`npm run seed:demo`). After 10 failed attempts an account locks for 15 minutes.                                                          |
+| Signing in returns you to the sign-in page         | `APP_URL` must match the address in the browser exactly (scheme, host and port). On the Docker stack, use Chrome or Edge on `http://localhost`, or put HTTPS in front of it. |
+| Port 3000 or 5432 is already in use                | Publish Postgres on another host port (the Quick start uses 5433), or start Next.js with `npm run dev -- -p 3001` and set `APP_URL` to match.                                |
+| Style changes do not appear in `npm run dev`       | Stop the dev server, delete `.next/dev`, and start it again.                                                                                                                 |
+| `seed:demo` says "Simulated data already exists"   | The database already has a demo day, so the seed left it alone. Generate another day from the **Simulator** page, or recreate the database.                                  |
 
 ## Research and sources
 
