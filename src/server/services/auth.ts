@@ -34,7 +34,13 @@ export async function login(input: z.infer<typeof loginSchema>, meta: { ip: stri
   }
 
   const db = getDb();
-  const user = (await db.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1))[0];
+  const user = (
+    await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1)
+  )[0];
   const ok = await verifyPassword(user?.passwordHash ?? null, password);
 
   if (!user || !user.isActive) {
@@ -43,7 +49,11 @@ export async function login(input: z.infer<typeof loginSchema>, meta: { ip: stri
   }
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     await audit({ id: user.id, email, ip: meta.ip }, "auth.login_failed", "user", user.id, { reason: "locked" });
-    throw new AppError(423, "ACCOUNT_LOCKED", `Too many failed attempts. The account is locked until ${user.lockedUntil.toISOString().slice(11, 16)} UTC, or ask an administrator for a reset link.`);
+    throw new AppError(
+      423,
+      "ACCOUNT_LOCKED",
+      `Too many failed attempts. The account is locked until ${user.lockedUntil.toISOString().slice(11, 16)} UTC, or ask an administrator for a reset link.`,
+    );
   }
   if (!ok) {
     const failures = user.failedLoginCount + 1;
@@ -91,7 +101,13 @@ export async function requestPasswordReset(emailInput: string, ip: string | null
   const email = emailInput.trim().toLowerCase();
   const limit = await hitRateLimit(`reset:${email}`, 3, 60 * 60);
   if (!limit.allowed) return;
-  const user = (await getDb().select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1))[0];
+  const user = (
+    await getDb()
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1)
+  )[0];
   await audit({ id: null, email, ip }, "auth.reset_requested", "user", user?.id ?? null);
   if (!user || !user.isActive) return;
   const { url } = await createResetLink(user.id);
@@ -124,7 +140,14 @@ export async function resetPassword(input: z.infer<typeof resetSchema>, ip: stri
       .where(and(eq(users.id, tok.userId), eq(users.isActive, true)))
       .returning();
     if (!user) throw badRequest("This account is disabled.");
-    await audit({ id: user.id, email: user.email, ip }, tok.purpose === "INVITE" ? "auth.invite_accepted" : "auth.password_reset", "user", user.id, {}, tx);
+    await audit(
+      { id: user.id, email: user.email, ip },
+      tok.purpose === "INVITE" ? "auth.invite_accepted" : "auth.password_reset",
+      "user",
+      user.id,
+      {},
+      tx,
+    );
     return user.id;
   });
   await invalidateUserSessions(userId);
@@ -132,12 +155,7 @@ export async function resetPassword(input: z.infer<typeof resetSchema>, ip: stri
 
 export const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: z.string() });
 
-export async function changePassword(
-  userId: string,
-  sessionId: string,
-  input: z.infer<typeof changePasswordSchema>,
-  ip: string | null,
-) {
+export async function changePassword(userId: string, sessionId: string, input: z.infer<typeof changePasswordSchema>, ip: string | null) {
   const db = getDb();
   const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
   if (!user) throw badRequest("Account not found.");

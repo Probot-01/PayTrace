@@ -20,7 +20,13 @@ import { ExceptionActions } from "./actions";
 export const metadata: Metadata = { title: "Exception" };
 
 const statusTone = (s: string | undefined) =>
-  s === "SUCCESS" ? "border-good/50 bg-good-soft text-good" : s === "FAILED" || s === "REVERSED" ? "border-critical/40 bg-critical-soft text-critical" : s === "PENDING" ? "border-warning/50 bg-warning-soft text-warning" : "border-dashed border-line-strong text-ink-3";
+  s === "SUCCESS"
+    ? "border-good/50 bg-good-soft text-good"
+    : s === "FAILED" || s === "REVERSED"
+      ? "border-critical/40 bg-critical-soft text-critical"
+      : s === "PENDING"
+        ? "border-warning/50 bg-warning-soft text-warning"
+        : "border-dashed border-line-strong text-ink-3";
 
 export default async function ExceptionPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, allowed } = await requirePage("exceptions:view");
@@ -34,8 +40,16 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
     if (isAppError(err) && err.status === 404) notFound();
     throw err;
   }
-  const [sim, assignable] = await Promise.all([getSimTransaction(e.txnRef), can(user.role, "exceptions:work") ? listAssignableUsers() : Promise.resolve([])]);
-  const evidence = e.evidence as { records: EvidenceRecord[]; missingSources?: SourceSystem[]; relatedRefs?: string[]; rule: string };
+  const [sim, assignable] = await Promise.all([
+    getSimTransaction(e.txnRef),
+    can(user.role, "exceptions:work") ? listAssignableUsers() : Promise.resolve([]),
+  ]);
+  const evidence = e.evidence as {
+    records: EvidenceRecord[];
+    missingSources?: SourceSystem[];
+    relatedRefs?: string[];
+    rule: string;
+  };
   const bySource = new Map<SourceSystem, EvidenceRecord>();
   for (const r of evidence.records) if (r.recordType !== "REVERSAL" && r.txnRef === e.txnRef && !bySource.has(r.source)) bySource.set(r.source, r);
   const reversal = evidence.records.find((r) => r.recordType === "REVERSAL");
@@ -54,7 +68,7 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
             <MethodTag method={e.method} />
             <span>{formatDateTime(e.txnAt)}</span>
             <span>·</span>
-            <Link href={`/runs/${e.runId}`} className="text-accent hover:underline">
+            <Link href={`/runs/${e.runId}`} className="text-accent underline underline-offset-2 hover:decoration-2">
               Run for {formatBusinessDate(e.runDate)}
             </Link>
           </span>
@@ -80,11 +94,18 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
                 const isPoint = e.failurePoint === s;
                 const missing = !r;
                 return (
-                  <li key={s} className={cx("rounded-md border p-2 text-xs", statusTone(r?.status), isPoint && "ring-2 ring-critical ring-offset-1 ring-offset-surface")}>
+                  <li
+                    key={s}
+                    className={cx(
+                      "rounded-md border p-2 text-xs",
+                      statusTone(r?.status),
+                      isPoint && "ring-2 ring-critical ring-offset-1 ring-offset-surface",
+                    )}
+                  >
                     <p className="font-semibold">{SOURCE_SHORT_LABELS[s]}</p>
                     <p>{missing ? "No record" : `${r.status.charAt(0)}${r.status.slice(1).toLowerCase()}${r.count > 1 ? ` ×${r.count}` : ""}`}</p>
-                    {r ? <p className="tabular opacity-80">{formatINR(r.amountPaise)}</p> : null}
-                    {r ? <p className="tabular opacity-80">{formatTime(r.eventAt)}</p> : null}
+                    {r ? <p className="tabular">{formatINR(r.amountPaise)}</p> : null}
+                    {r ? <p className="tabular">{formatTime(r.eventAt)}</p> : null}
                     {isPoint ? <p className="mt-1 font-semibold">Failure point</p> : null}
                   </li>
                 );
@@ -117,26 +138,26 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
                 <dt className="text-xs font-medium text-ink-3">Recommended action</dt>
                 <dd className="mt-0.5 text-ink">{e.recommendedAction}</dd>
               </div>
-              <div className="flex flex-wrap gap-x-8 gap-y-2">
-                <div>
-                  <dt className="text-xs font-medium text-ink-3">Handling</dt>
-                  <dd>{e.requiresManual ? "Manual investigation" : "Automatic playbook available"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium text-ink-3">Rule</dt>
-                  <dd>{evidence.rule}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium text-ink-3">Failure point</dt>
-                  <dd>{e.failurePoint ? SOURCE_LABELS[e.failurePoint] : "Not attributable"}</dd>
-                </div>
+            </dl>
+            <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+              <div>
+                <dt className="text-xs font-medium text-ink-3">Handling</dt>
+                <dd>{e.requiresManual ? "Manual investigation" : "Automatic playbook available"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-ink-3">Rule</dt>
+                <dd>{evidence.rule}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-ink-3">Failure point</dt>
+                <dd>{e.failurePoint ? SOURCE_LABELS[e.failurePoint] : "Not attributable"}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Participant records" description="Raw lines from the files in this run that carry this reference." id="records">
             {e.records.length ? (
-              <div className="-mx-4 -mb-4 overflow-x-auto">
+              <div className="-mx-4 -mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -180,13 +201,25 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
             <Card title="Simulation ground truth" description={`From simulation “${sim.simName}”. Shown only for simulated data.`} id="sim">
               <p className="text-sm">
                 Injected fault: <strong>{FAULT_LABELS[sim.tx.injectedFault as InjectedFault] ?? sim.tx.injectedFault}</strong>
-                {sim.tx.failureStage ? <> at stage <span className="mono">{sim.tx.failureStage}</span></> : null}
+                {sim.tx.failureStage ? (
+                  <>
+                    {" "}
+                    at stage <span className="mono">{sim.tx.failureStage}</span>
+                  </>
+                ) : null}
               </p>
               <ol className="mt-3 space-y-1 border-l border-line pl-4 text-sm">
                 {(sim.tx.timeline as TimelineEvent[]).map((t, i) => (
                   <li key={i} className="relative">
-                    <span aria-hidden className={cx("absolute -left-[21px] top-1.5 h-2 w-2 rounded-full", t.status === "OK" ? "bg-good" : t.status === "PENDING" ? "bg-warning" : "bg-critical")} />
-                    <span className="mono text-xs text-ink-3">{formatTime(t.at)}</span> <span className="font-medium">{t.stage.replaceAll("_", " ").toLowerCase()}</span> · {t.status.toLowerCase()}
+                    <span
+                      aria-hidden
+                      className={cx(
+                        "absolute -left-[21px] top-1.5 h-2 w-2 rounded-full",
+                        t.status === "OK" ? "bg-good" : t.status === "PENDING" ? "bg-warning" : "bg-critical",
+                      )}
+                    />
+                    <span className="mono text-xs text-ink-3">{formatTime(t.at)}</span>{" "}
+                    <span className="font-medium">{t.stage.replaceAll("_", " ").toLowerCase()}</span> · {t.status.toLowerCase()}
                     {t.note ? <span className="text-ink-2"> · {t.note}</span> : null}
                   </li>
                 ))}
@@ -233,7 +266,11 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
                 <div>
                   <dt className="text-ink-3">{e.status === "PENDING_APPROVAL" ? `Proposed by ${e.proposedByName ?? "—"}` : "Resolution"}</dt>
                   <dd className="mt-0.5">
-                    {e.resolutionCode ? <strong>{RESOLUTION_LABELS[e.resolutionCode]}. </strong> : e.status === "PENDING_APPROVAL" || e.status === "DISMISSED" ? <strong>Dismissal. </strong> : null}
+                    {e.resolutionCode ? (
+                      <strong>{RESOLUTION_LABELS[e.resolutionCode]}. </strong>
+                    ) : e.status === "PENDING_APPROVAL" || e.status === "DISMISSED" ? (
+                      <strong>Dismissal. </strong>
+                    ) : null}
                     {e.resolutionNote}
                   </dd>
                 </div>
@@ -248,7 +285,14 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
               ) : null}
             </dl>
             <ExceptionActions
-              exception={{ id: e.id, status: e.status, version: e.version, assigneeId: e.assigneeId, proposedBy: e.proposedBy, affectedPaise: e.affectedPaise }}
+              exception={{
+                id: e.id,
+                status: e.status,
+                version: e.version,
+                assigneeId: e.assigneeId,
+                proposedBy: e.proposedBy,
+                affectedPaise: e.affectedPaise,
+              }}
               approvalThresholdPaise={e.approvalThresholdPaise}
               user={{ id: user.id, role: user.role }}
               canWork={can(user.role, "exceptions:work")}

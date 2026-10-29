@@ -5,8 +5,20 @@ import { useState } from "react";
 import { api, ApiError } from "./api";
 import { buttonStyles } from "@/components/ui";
 
-/** Fires a JSON POST and navigates to the created resource (e.g. "re-run"). */
-export function PostButton({ url, body, label, navigateTo, variant = "secondary" }: { url: string; body: unknown; label: string; navigateTo: (res: { id: string }) => string; variant?: "primary" | "secondary" }) {
+/** Fires a JSON POST and navigates to the created resource at `${navigatePrefix}${id}` (e.g. "re-run"). */
+export function PostButton({
+  url,
+  body,
+  label,
+  navigatePrefix,
+  variant = "secondary",
+}: {
+  url: string;
+  body: unknown;
+  label: string;
+  navigatePrefix: string;
+  variant?: "primary" | "secondary";
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +33,7 @@ export function PostButton({ url, body, label, navigateTo, variant = "secondary"
           setError(null);
           try {
             const res = await api<{ id: string }>(url, { json: body });
-            router.push(navigateTo(res));
+            router.push(`${navigatePrefix}${res.id}`);
           } catch (err) {
             setError(err instanceof ApiError ? err.message : "Request failed.");
             setBusy(false);

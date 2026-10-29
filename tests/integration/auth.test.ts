@@ -107,7 +107,9 @@ describe("password reset", () => {
   it("rejects expired links", async () => {
     const u = await createUserWithPassword("ana@example.test", "analyst");
     const { token } = await createResetLink(u.id);
-    await getDb().update(passwordTokens).set({ expiresAt: new Date(Date.now() - 1000) });
+    await getDb()
+      .update(passwordTokens)
+      .set({ expiresAt: new Date(Date.now() - 1000) });
     const err = await resetPassword({ token, password: "a-brand-new-passphrase" }, meta.ip).catch((e) => e);
     expect(err.status).toBeGreaterThanOrEqual(400);
     expect(u.id).toBeTruthy();

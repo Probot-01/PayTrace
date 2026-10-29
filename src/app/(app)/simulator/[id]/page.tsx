@@ -49,7 +49,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
                 url="/api/v1/runs"
                 body={{ businessDate: sim.businessDate, fileIds: files.map((f) => f.id) }}
                 label={runs.length ? "Reconcile again" : "Reconcile this day"}
-                navigateTo={(r) => `/runs/${r.id}`}
+                navigatePrefix="/runs/"
               />
             ) : null}
             {can(user.role, "simulations:delete") && sim.status !== "RUNNING" && sim.status !== "QUEUED" ? (
@@ -70,15 +70,28 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
           <JobPoller url={`/api/v1/simulations/${id}`} label="Generating transactions and participant files…" />
         </Card>
       ) : null}
-      {sim.status === "FAILED" ? <Alert tone="critical" title="Simulation failed">{sim.error ?? "Unknown error."}</Alert> : null}
+      {sim.status === "FAILED" ? (
+        <Alert tone="critical" title="Simulation failed">
+          {sim.error ?? "Unknown error."}
+        </Alert>
+      ) : null}
 
       {sim.status === "COMPLETED" ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card title="What the switch did" description={`${formatCount(sim.transactionCount)} transactions (including duplicate requests and refunds).`} id="faults">
+          <Card
+            title="What the switch did"
+            description={`${formatCount(sim.transactionCount)} transactions (including duplicate requests and refunds).`}
+            id="faults"
+          >
             <BarList
               ariaLabel="Injected outcomes"
               formatValue={formatCount}
-              items={faults.map(([k, v]) => ({ key: k, label: FAULT_LABELS[k as InjectedFault] ?? k, value: v, detail: formatPercent(v / (sim.transactionCount || 1)) }))}
+              items={faults.map(([k, v]) => ({
+                key: k,
+                label: FAULT_LABELS[k as InjectedFault] ?? k,
+                value: v,
+                detail: formatPercent(v / (sim.transactionCount || 1)),
+              }))}
             />
           </Card>
           <div className="space-y-4">
@@ -88,7 +101,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
                   <li key={f.id} className="flex justify-between gap-2">
                     <span>
                       <span className="text-ink-3">{SOURCE_SHORT_LABELS[f.source]}:</span>{" "}
-                      <Link href={`/files/${f.id}`} className="text-accent hover:underline">
+                      <Link href={`/files/${f.id}`} className="text-accent underline underline-offset-2 hover:decoration-2">
                         {f.filename}
                       </Link>
                     </span>
@@ -113,15 +126,19 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
                 <ul className="space-y-2 text-sm">
                   {runs.map((r) => (
                     <li key={r.id} className="flex justify-between gap-2">
-                      <Link href={`/runs/${r.id}`} className="text-accent hover:underline">
+                      <Link href={`/runs/${r.id}`} className="text-accent underline underline-offset-2 hover:decoration-2">
                         {formatDateTime(r.createdAt)}
                       </Link>
-                      <span className="text-ink-3">{r.status === "COMPLETED" ? `${formatPercent(r.total ? r.matched / r.total : 0)} reconciled` : r.status.toLowerCase()}</span>
+                      <span className="text-ink-3">
+                        {r.status === "COMPLETED" ? `${formatPercent(r.total ? r.matched / r.total : 0)} reconciled` : r.status.toLowerCase()}
+                      </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-ink-2">Not reconciled yet. Use “Reconcile this day” to compare the five files and score the engine against the injected faults.</p>
+                <p className="text-sm text-ink-2">
+                  Not reconciled yet. Use “Reconcile this day” to compare the five files and score the engine against the injected faults.
+                </p>
               )}
             </Card>
           </div>

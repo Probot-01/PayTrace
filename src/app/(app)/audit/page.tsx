@@ -4,11 +4,17 @@ import { AccessDenied, EmptyState, PageHeader, Pagination, buttonStyles } from "
 import { formatDateTime } from "@/lib/format";
 import { requirePage } from "@/server/auth/current";
 import { listAudit } from "@/server/services/dashboard";
+import { nonEmptyParams } from "@/lib/query";
 
 export const metadata: Metadata = { title: "Audit log" };
 
 const schema = z.object({
-  action: z.string().trim().max(60).regex(/^[a-z_.]*$/).optional(),
+  action: z
+    .string()
+    .trim()
+    .max(60)
+    .regex(/^[a-z_.]*$/)
+    .optional(),
   entityType: z.enum(["user", "exception", "source_file", "recon_run", "simulation", "settings", "session"]).optional(),
   page: z.coerce.number().int().min(1).max(10_000).default(1),
 });
@@ -17,7 +23,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const { allowed } = await requirePage("audit:view");
   if (!allowed) return <AccessDenied what="the audit log" />;
   const raw = await searchParams;
-  const parsed = schema.safeParse(Object.fromEntries(Object.entries(raw).filter(([, v]) => v)));
+  const parsed = schema.safeParse(nonEmptyParams(raw));
   const f = parsed.success ? parsed.data : { page: 1 };
   const { rows, total } = await listAudit({ ...f, pageSize: 50 });
   const qs = (page: number) => {
@@ -27,11 +33,19 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   };
   return (
     <>
-      <PageHeader title="Audit log" description="Append-only record of sign-ins, data changes and exception decisions. Entries cannot be edited or deleted, including by administrators." />
+      <PageHeader
+        title="Audit log"
+        description="Append-only record of sign-ins, data changes and exception decisions. Entries cannot be edited or deleted, including by administrators."
+      />
       <form method="get" className="mb-3 flex flex-wrap items-end gap-2">
         <label className="text-sm">
           <span className="mb-1 block text-xs font-medium text-ink-3">Action starts with</span>
-          <input name="action" defaultValue={raw.action ?? ""} placeholder="e.g. auth. or exception.resolve" className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm" />
+          <input
+            name="action"
+            defaultValue={raw.action ?? ""}
+            placeholder="e.g. auth. or exception.resolve"
+            className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm"
+          />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-xs font-medium text-ink-3">Entity</span>
@@ -49,7 +63,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       {rows.length === 0 ? (
         <EmptyState title="No audit events match" />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Scrollable table">
           <table className="data-table">
             <thead>
               <tr>

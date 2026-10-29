@@ -17,10 +17,19 @@ async function main() {
   }
 
   const db = getDb();
-  const existing = (await db.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1))[0];
+  const existing = (
+    await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1)
+  )[0];
   let userId: string;
   if (existing) {
-    await db.update(users).set({ role: "admin", isActive: true }).where(sql`${users.id} = ${existing.id}`);
+    await db
+      .update(users)
+      .set({ role: "admin", isActive: true })
+      .where(sql`${users.id} = ${existing.id}`);
     userId = existing.id;
     console.log(`Existing user ${email} promoted to admin.`);
   } else {

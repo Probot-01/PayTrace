@@ -24,9 +24,19 @@ function LinkNotice({ url, emailed, onClose }: { url: string; emailed: boolean; 
   const [copied, setCopied] = useState(false);
   return (
     <div role="status" className="space-y-2 rounded-md border border-good/40 bg-good-soft p-3 text-sm text-good">
-      <p className="font-medium">{emailed ? "Link emailed. You can also share it directly:" : "Email is not configured. Share this one-time link with the person through a trusted channel:"}</p>
+      <p className="font-medium">
+        {emailed
+          ? "Link emailed. You can also share it directly:"
+          : "Email is not configured. Share this one-time link with the person through a trusted channel:"}
+      </p>
       <div className="flex gap-2">
-        <input readOnly value={url} aria-label="One-time link" className="w-full rounded border border-line-strong bg-surface px-2 py-1 font-mono text-xs text-ink" onFocus={(e) => e.currentTarget.select()} />
+        <input
+          readOnly
+          value={url}
+          aria-label="One-time link"
+          className="w-full rounded border border-line-strong bg-surface px-2 py-1 font-mono text-xs text-ink"
+          onFocus={(e) => e.currentTarget.select()}
+        />
         <button
           type="button"
           className={buttonStyles.secondary}
@@ -76,7 +86,7 @@ export function UsersAdmin({ users, currentUserId, mailConfigured }: { users: Ro
       <div className="space-y-3 xl:col-span-2">
         <FormError message={error} />
         {link ? <LinkNotice {...link} onClose={() => setLink(null)} /> : null}
-        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Scrollable table">
           <table className="data-table">
             <thead>
               <tr>
@@ -121,7 +131,15 @@ export function UsersAdmin({ users, currentUserId, mailConfigured }: { users: Ro
                       </Select>
                     </td>
                     <td className="text-sm">
-                      {!u.isActive ? <span className="text-ink-3">Deactivated</span> : !u.hasPassword ? <span className="text-warning">Invited</span> : locked ? <span className="text-critical">Locked</span> : <span className="text-good">Active</span>}
+                      {!u.isActive ? (
+                        <span className="text-ink-3">Deactivated</span>
+                      ) : !u.hasPassword ? (
+                        <span className="text-warning">Invited</span>
+                      ) : locked ? (
+                        <span className="text-critical">Locked</span>
+                      ) : (
+                        <span className="text-good">Active</span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap text-xs text-ink-2">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}</td>
                     <td>
@@ -147,7 +165,11 @@ export function UsersAdmin({ users, currentUserId, mailConfigured }: { users: Ro
                             className={buttonStyles.ghost}
                             disabled={busy !== null}
                             onClick={() => {
-                              if (u.isActive && !window.confirm(`Deactivate ${u.name}? They will be signed out immediately and cannot sign in until reactivated.`)) return;
+                              if (
+                                u.isActive &&
+                                !window.confirm(`Deactivate ${u.name}? They will be signed out immediately and cannot sign in until reactivated.`)
+                              )
+                                return;
                               void act(`active-${u.id}`, () => api(`/api/v1/users/${u.id}`, { method: "PATCH", json: { isActive: !u.isActive } }));
                             }}
                           >
@@ -163,7 +185,13 @@ export function UsersAdmin({ users, currentUserId, mailConfigured }: { users: Ro
           </table>
         </div>
       </div>
-      <Card title="Invite a person" id="invite" description={mailConfigured ? "They receive an email with a link to set their password." : "Email is not configured: you will get a link to share."}>
+      <Card
+        title="Invite a person"
+        id="invite"
+        description={
+          mailConfigured ? "They receive an email with a link to set their password." : "Email is not configured: you will get a link to share."
+        }
+      >
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -172,7 +200,9 @@ export function UsersAdmin({ users, currentUserId, mailConfigured }: { users: Ro
             const f = new FormData(form);
             setFieldErrors({});
             void act("invite", async () => {
-              const r = await api<{ inviteUrl: string; emailed: boolean }>("/api/v1/users", { json: { name: f.get("name"), email: f.get("email"), role: f.get("role") } });
+              const r = await api<{ inviteUrl: string; emailed: boolean }>("/api/v1/users", {
+                json: { name: f.get("name"), email: f.get("email"), role: f.get("role") },
+              });
               setLink({ url: r.inviteUrl, emailed: r.emailed });
               form.reset();
             });

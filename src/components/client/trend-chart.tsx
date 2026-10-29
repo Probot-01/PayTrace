@@ -30,7 +30,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
 
   return (
     <figure className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Reconciliation rate by run; table follows">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="group" aria-label="Reconciliation rate by run; table follows">
         {ticks.map((t) => (
           <g key={t}>
             <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth={1} />

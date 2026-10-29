@@ -100,36 +100,51 @@ export const simulationConfigSchema = z.object({
   businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
   transactionCount: z.number().int().min(10).max(100_000),
   seed: z.number().int().min(1).max(2_147_483_647),
-  methodMix: z.object({
-    UPI: z.number().min(0).max(100),
-    DEBIT_CARD: z.number().min(0).max(100),
-    CREDIT_CARD: z.number().min(0).max(100),
-    NEFT: z.number().min(0).max(100),
-    RTGS: z.number().min(0).max(100),
-  }).refine((m) => Object.values(m).some((v) => v > 0), "At least one payment method needs a non-zero share"),
-  faultRates: z.object({
-    businessDecline: rate,
-    technicalDecline: rate,
-    timeoutAfterDebit: rate,
-    autoReversalShare: z.number().min(0).max(1),
-    creditFailure: rate,
-    deemedPending: rate,
-    delayedCredit: rate,
-    duplicateDebit: rate,
-    duplicateRequest: rate,
-    merchantNotUpdated: rate,
-    merchantPaidOnFailure: rate,
-    missingRecord: rate,
-    amountMismatch: rate,
-    settlementMiss: rate,
-    refund: rate,
-    refundFailure: z.number().min(0).max(1),
-  }).refine((f) => {
-    const total = f.businessDecline + f.technicalDecline + f.timeoutAfterDebit + f.creditFailure + f.deemedPending +
-      f.delayedCredit + f.duplicateDebit + f.duplicateRequest + f.merchantNotUpdated + f.merchantPaidOnFailure +
-      f.missingRecord + f.amountMismatch + f.settlementMiss;
-    return total <= 0.9;
-  }, "Combined fault rates must leave at least 10% clean transactions"),
+  methodMix: z
+    .object({
+      UPI: z.number().min(0).max(100),
+      DEBIT_CARD: z.number().min(0).max(100),
+      CREDIT_CARD: z.number().min(0).max(100),
+      NEFT: z.number().min(0).max(100),
+      RTGS: z.number().min(0).max(100),
+    })
+    .refine((m) => Object.values(m).some((v) => v > 0), "At least one payment method needs a non-zero share"),
+  faultRates: z
+    .object({
+      businessDecline: rate,
+      technicalDecline: rate,
+      timeoutAfterDebit: rate,
+      autoReversalShare: z.number().min(0).max(1),
+      creditFailure: rate,
+      deemedPending: rate,
+      delayedCredit: rate,
+      duplicateDebit: rate,
+      duplicateRequest: rate,
+      merchantNotUpdated: rate,
+      merchantPaidOnFailure: rate,
+      missingRecord: rate,
+      amountMismatch: rate,
+      settlementMiss: rate,
+      refund: rate,
+      refundFailure: z.number().min(0).max(1),
+    })
+    .refine((f) => {
+      const total =
+        f.businessDecline +
+        f.technicalDecline +
+        f.timeoutAfterDebit +
+        f.creditFailure +
+        f.deemedPending +
+        f.delayedCredit +
+        f.duplicateDebit +
+        f.duplicateRequest +
+        f.merchantNotUpdated +
+        f.merchantPaidOnFailure +
+        f.missingRecord +
+        f.amountMismatch +
+        f.settlementMiss;
+      return total <= 0.9;
+    }, "Combined fault rates must leave at least 10% clean transactions"),
 });
 export type SimulationConfig = z.infer<typeof simulationConfigSchema>;
 
@@ -141,10 +156,22 @@ export const SIMULATION_PRESETS: Record<string, { label: string; description: st
       transactionCount: 5_000,
       methodMix: { UPI: 80, DEBIT_CARD: 6, CREDIT_CARD: 8, NEFT: 5, RTGS: 1 },
       faultRates: {
-        businessDecline: 0.04, technicalDecline: 0.008, timeoutAfterDebit: 0.006, autoReversalShare: 0.7,
-        creditFailure: 0.002, deemedPending: 0.003, delayedCredit: 0.004, duplicateDebit: 0.001,
-        duplicateRequest: 0.002, merchantNotUpdated: 0.004, merchantPaidOnFailure: 0.0005, missingRecord: 0.002,
-        amountMismatch: 0.001, settlementMiss: 0.003, refund: 0.01, refundFailure: 0.2,
+        businessDecline: 0.04,
+        technicalDecline: 0.008,
+        timeoutAfterDebit: 0.006,
+        autoReversalShare: 0.7,
+        creditFailure: 0.002,
+        deemedPending: 0.003,
+        delayedCredit: 0.004,
+        duplicateDebit: 0.001,
+        duplicateRequest: 0.002,
+        merchantNotUpdated: 0.004,
+        merchantPaidOnFailure: 0.0005,
+        missingRecord: 0.002,
+        amountMismatch: 0.001,
+        settlementMiss: 0.003,
+        refund: 0.01,
+        refundFailure: 0.2,
       },
     },
   },
@@ -155,10 +182,22 @@ export const SIMULATION_PRESETS: Record<string, { label: string; description: st
       transactionCount: 5_000,
       methodMix: { UPI: 85, DEBIT_CARD: 5, CREDIT_CARD: 6, NEFT: 3, RTGS: 1 },
       faultRates: {
-        businessDecline: 0.04, technicalDecline: 0.08, timeoutAfterDebit: 0.05, autoReversalShare: 0.5,
-        creditFailure: 0.01, deemedPending: 0.03, delayedCredit: 0.04, duplicateDebit: 0.004,
-        duplicateRequest: 0.02, merchantNotUpdated: 0.02, merchantPaidOnFailure: 0.002, missingRecord: 0.005,
-        amountMismatch: 0.001, settlementMiss: 0.005, refund: 0.01, refundFailure: 0.3,
+        businessDecline: 0.04,
+        technicalDecline: 0.08,
+        timeoutAfterDebit: 0.05,
+        autoReversalShare: 0.5,
+        creditFailure: 0.01,
+        deemedPending: 0.03,
+        delayedCredit: 0.04,
+        duplicateDebit: 0.004,
+        duplicateRequest: 0.02,
+        merchantNotUpdated: 0.02,
+        merchantPaidOnFailure: 0.002,
+        missingRecord: 0.005,
+        amountMismatch: 0.001,
+        settlementMiss: 0.005,
+        refund: 0.01,
+        refundFailure: 0.3,
       },
     },
   },
@@ -169,25 +208,29 @@ export const SIMULATION_PRESETS: Record<string, { label: string; description: st
       transactionCount: 20_000,
       methodMix: { UPI: 82, DEBIT_CARD: 5, CREDIT_CARD: 10, NEFT: 2.5, RTGS: 0.5 },
       faultRates: {
-        businessDecline: 0.05, technicalDecline: 0.015, timeoutAfterDebit: 0.01, autoReversalShare: 0.65,
-        creditFailure: 0.003, deemedPending: 0.006, delayedCredit: 0.01, duplicateDebit: 0.002,
-        duplicateRequest: 0.008, merchantNotUpdated: 0.008, merchantPaidOnFailure: 0.001, missingRecord: 0.003,
-        amountMismatch: 0.001, settlementMiss: 0.004, refund: 0.025, refundFailure: 0.25,
+        businessDecline: 0.05,
+        technicalDecline: 0.015,
+        timeoutAfterDebit: 0.01,
+        autoReversalShare: 0.65,
+        creditFailure: 0.003,
+        deemedPending: 0.006,
+        delayedCredit: 0.01,
+        duplicateDebit: 0.002,
+        duplicateRequest: 0.008,
+        merchantNotUpdated: 0.008,
+        merchantPaidOnFailure: 0.001,
+        missingRecord: 0.003,
+        amountMismatch: 0.001,
+        settlementMiss: 0.004,
+        refund: 0.025,
+        refundFailure: 0.25,
       },
     },
   },
 };
 
 export type Stage =
-  | "INITIATED"
-  | "SWITCH_RECEIVED"
-  | "ISSUER_DEBIT"
-  | "SWITCH_ROUTED"
-  | "ACQUIRER_CREDIT"
-  | "MERCHANT_NOTIFIED"
-  | "SETTLEMENT"
-  | "REVERSAL"
-  | "REFUND";
+  "INITIATED" | "SWITCH_RECEIVED" | "ISSUER_DEBIT" | "SWITCH_ROUTED" | "ACQUIRER_CREDIT" | "MERCHANT_NOTIFIED" | "SETTLEMENT" | "REVERSAL" | "REFUND";
 
 export interface TimelineEvent {
   stage: Stage;
@@ -443,7 +486,13 @@ export function routePayment(
   }
 
   if (fault === "SETTLEMENT_MISS") {
-    timeline.push({ stage: "SETTLEMENT", status: "SKIPPED", at: new Date(clock + 3_600_000).toISOString(), latencyMs: 3_600_000, note: "Not included in settlement cycle" });
+    timeline.push({
+      stage: "SETTLEMENT",
+      status: "SKIPPED",
+      at: new Date(clock + 3_600_000).toISOString(),
+      latencyMs: 3_600_000,
+      note: "Not included in settlement cycle",
+    });
     views.settlement = rng.chance(0.5) ? "FAILED" : undefined;
     failureStage = "SETTLEMENT";
   } else {
@@ -535,7 +584,7 @@ export function simulate(config: SimulationConfig): SimulationOutput {
         issuingBank: issuer.code,
         acquiringBank: acquirer.code,
         switchStatus: views.switch ?? "FAILED",
-        bankStatus: views.reversal ? "REVERSED" : views.issuer ?? "FAILED",
+        bankStatus: views.reversal ? "REVERSED" : (views.issuer ?? "FAILED"),
         merchantStatus: views.merchant ?? "NONE",
         settlementStatus: success ? (views.settlement === "SUCCESS" ? "SETTLED" : "UNSETTLED") : "NOT_APPLICABLE",
         refundStatus: "NONE",
@@ -547,7 +596,9 @@ export function simulate(config: SimulationConfig): SimulationOutput {
       // Refunds on a share of clean successful payments.
       if (thisFault === "NONE" && success && method !== "RTGS" && rng.chance(config.faultRates.refund)) {
         const refundFault: InjectedFault = rng.chance(config.faultRates.refundFailure)
-          ? rng.chance(0.5) ? "REFUND_NOT_CREDITED" : "REFUND_NOT_IN_MERCHANT"
+          ? rng.chance(0.5)
+            ? "REFUND_NOT_CREDITED"
+            : "REFUND_NOT_IN_MERCHANT"
           : "REFUND_OK";
         count(refundFault);
         const refundRef = refs.refund();
@@ -583,7 +634,12 @@ export function simulate(config: SimulationConfig): SimulationOutput {
               status: refundFault === "REFUND_NOT_CREDITED" ? "PENDING" : "OK",
               at: creditedAt.toISOString(),
               latencyMs: creditedAt.getTime() - refundAt.getTime(),
-              note: refundFault === "REFUND_NOT_CREDITED" ? "Credit to customer not received" : refundFault === "REFUND_NOT_IN_MERCHANT" ? "Credited, but merchant ledger not updated" : "Credited to customer",
+              note:
+                refundFault === "REFUND_NOT_CREDITED"
+                  ? "Credit to customer not received"
+                  : refundFault === "REFUND_NOT_IN_MERCHANT"
+                    ? "Credited, but merchant ledger not updated"
+                    : "Credited to customer",
             },
           ],
         });

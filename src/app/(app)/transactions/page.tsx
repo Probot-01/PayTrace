@@ -8,6 +8,7 @@ import { formatCount, formatINR } from "@/lib/money";
 import { requirePage } from "@/server/auth/current";
 import { completedRunOptions } from "@/server/services/dashboard";
 import { listReconTransactions, txnListSchema } from "@/server/services/runs";
+import { nonEmptyParams } from "@/lib/query";
 
 export const metadata: Metadata = { title: "Transaction trace" };
 
@@ -20,7 +21,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   // An exact reference search jumps straight to the trace.
   if (raw.trace?.trim()) redirect(`/transactions/${encodeURIComponent(raw.trace.trim().slice(0, 40))}`);
   const runs = await completedRunOptions();
-  const parsed = txnListSchema.safeParse({ ...raw, runId: raw.runId || runs[0]?.id });
+  const parsed = txnListSchema.safeParse({ ...nonEmptyParams(raw), runId: raw.runId || runs[0]?.id });
   const filter = parsed.success ? parsed.data : txnListSchema.parse({ runId: runs[0]?.id });
   const { rows, total } = runs.length ? await listReconTransactions(filter) : { rows: [], total: 0 };
   const qs = (page: number) => {
@@ -31,7 +32,10 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageHeader title="Transaction trace" description="Follow a single payment across every participant, or browse a run's verdict on each transaction." />
+      <PageHeader
+        title="Transaction trace"
+        description="Follow a single payment across every participant, or browse a run's verdict on each transaction."
+      />
       <form method="get" className="mb-4 flex flex-wrap items-end gap-2" role="search">
         <label className="text-sm">
           <span className="mb-1 block text-xs font-medium text-ink-3">Trace a reference (RRN / UTR)</span>
@@ -94,13 +98,15 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           {rows.length === 0 ? (
             <EmptyState title="No transactions match">Try other filters.</EmptyState>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+            <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Scrollable table">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th scope="col">Reference</th>
                     <th scope="col">Method</th>
-                    <th scope="col" className="num">Amount</th>
+                    <th scope="col" className="num">
+                      Amount
+                    </th>
                     <th scope="col">Outcome</th>
                     <th scope="col">Seen by</th>
                     <th scope="col">Reconciled</th>
@@ -123,12 +129,24 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                       <td>{t.outcome.charAt(0) + t.outcome.slice(1).toLowerCase()}</td>
                       <td className="text-xs text-ink-2">
                         {SOURCE_SYSTEMS.map((s) => (
-                          <span key={s} className={(t.sourcesPresent as SourceSystem[]).includes(s) ? "mr-1.5" : "mr-1.5 text-ink-3 line-through"} title={(t.sourcesPresent as SourceSystem[]).includes(s) ? "Record present" : "No record"}>
+                          <span
+                            key={s}
+                            className={(t.sourcesPresent as SourceSystem[]).includes(s) ? "mr-1.5" : "mr-1.5 text-ink-3 line-through"}
+                            title={(t.sourcesPresent as SourceSystem[]).includes(s) ? "Record present" : "No record"}
+                          >
                             {SOURCE_SHORT_LABELS[s]}
                           </span>
                         ))}
                       </td>
-                      <td>{t.matched ? <span className="text-good">✓ Matched</span> : <span className="text-critical">✕ {t.exceptionCount} exception{t.exceptionCount === 1 ? "" : "s"}</span>}</td>
+                      <td>
+                        {t.matched ? (
+                          <span className="text-good">✓ Matched</span>
+                        ) : (
+                          <span className="text-critical">
+                            ✕ {t.exceptionCount} exception{t.exceptionCount === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </td>
                       <td className="whitespace-nowrap text-xs text-ink-2">{formatDateTime(t.txnAt)}</td>
                     </tr>
                   ))}

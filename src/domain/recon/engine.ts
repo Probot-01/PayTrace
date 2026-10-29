@@ -347,8 +347,7 @@ function classifyPayment(group: PaymentGroup, config: ReconConfig, emit: Emit) {
     ...extra,
   });
 
-  const reversed =
-    I?.status === "REVERSED" || group.reversals.some((r) => r.status === "SUCCESS" || r.status === "REVERSED");
+  const reversed = I?.status === "REVERSED" || group.reversals.some((r) => r.status === "SUCCESS" || r.status === "REVERSED");
   const issuerDebited = I?.status === "SUCCESS" || I?.status === "REVERSED";
   const netDebited = I?.status === "SUCCESS" && !reversed;
   const credited = A?.status === "SUCCESS";
@@ -392,7 +391,8 @@ function classifyPayment(group: PaymentGroup, config: ReconConfig, emit: Emit) {
         affectedPaise: spread,
         failurePoint: offender,
         cause: `Participants disagree on the amount (difference ${spread / 100} INR). ${offender ? SOURCE_SHORT_LABELS[offender] : "One participant"} reports a different value; typical causes are partial capture, fee netting or a data entry/format error.`,
-        action: "Confirm the authorised amount with the switch log and correct the participant that differs; adjust the customer or merchant for the difference.",
+        action:
+          "Confirm the authorised amount with the switch log and correct the participant that differs; adjust the customer or merchant for the difference.",
         evidence: evidence("Amounts differ across participants"),
       });
     }
@@ -471,7 +471,8 @@ function classifyPayment(group: PaymentGroup, config: ReconConfig, emit: Emit) {
       cause: M
         ? "Payment succeeded at the bank and switch but the merchant system recorded it as failed (callback/webhook lost or processed out of order)."
         : "Payment succeeded at the bank and switch but the merchant system has no record (callback/webhook not delivered).",
-      action: "Re-send the payment status to the merchant (status push / webhook retry). If the order cannot be fulfilled, refund the customer within T+5.",
+      action:
+        "Re-send the payment status to the merchant (status push / webhook retry). If the order cannot be fulfilled, refund the customer within T+5.",
       evidence: evidence("Acquirer SUCCESS, merchant not SUCCESS"),
     });
     explained.add("MERCHANT");

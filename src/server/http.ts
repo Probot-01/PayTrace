@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import type { AuditActor } from "./audit";
 import { can, type Permission } from "./auth/permissions";
 import { SESSION_COOKIE, validateSessionToken, type SessionUser } from "./auth/session";
+import { nonEmptyParams } from "@/lib/query";
 
 export interface RequestContext {
   user: SessionUser;
@@ -60,7 +61,13 @@ export function errorResponse(err: unknown, requestId: string): NextResponse {
   }
   logger.error({ err, requestId }, "unhandled API error");
   return NextResponse.json(
-    { error: { code: "INTERNAL", message: "Something went wrong on our side. Try again; if it persists, quote reference " + requestId + ".", details: null } },
+    {
+      error: {
+        code: "INTERNAL",
+        message: "Something went wrong on our side. Try again; if it persists, quote reference " + requestId + ".",
+        details: null,
+      },
+    },
     { status: 500 },
   );
 }
@@ -85,8 +92,7 @@ export async function readJson<T extends z.ZodType>(req: Request, schema: T): Pr
 }
 
 export function parseQuery<T extends z.ZodType>(req: NextRequest, schema: T): z.infer<T> {
-  const raw = Object.fromEntries(req.nextUrl.searchParams.entries());
-  const parsed = schema.safeParse(raw);
+  const parsed = schema.safeParse(nonEmptyParams(Object.fromEntries(req.nextUrl.searchParams.entries())));
   if (!parsed.success) throw validationFailed(z.flattenError(parsed.error), "Invalid query parameters.");
   return parsed.data;
 }

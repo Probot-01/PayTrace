@@ -9,6 +9,7 @@ import { requirePage } from "@/server/auth/current";
 import { can } from "@/server/auth/permissions";
 import { fileListSchema, listFiles } from "@/server/services/files";
 import { UploadForm } from "./upload-form";
+import { nonEmptyParams } from "@/lib/query";
 
 export const metadata: Metadata = { title: "Participant files" };
 
@@ -16,7 +17,7 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
   const { user, allowed } = await requirePage("files:view");
   if (!allowed) return <AccessDenied />;
   const raw = await searchParams;
-  const parsed = fileListSchema.safeParse(raw);
+  const parsed = fileListSchema.safeParse(nonEmptyParams(raw));
   const filter = parsed.success ? parsed.data : fileListSchema.parse({});
   const { rows, total } = await listFiles(filter);
   const qs = (page: number) => {
@@ -27,7 +28,10 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title="Participant files" description="Transaction records from each participant in the payment chain. Each file is validated row by row and stored once (duplicates are rejected by checksum)." />
+      <PageHeader
+        title="Participant files"
+        description="Transaction records from each participant in the payment chain. Each file is validated row by row and stored once (duplicates are rejected by checksum)."
+      />
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <form method="get" className="flex flex-wrap items-end gap-2" aria-label="Filter files">
@@ -44,7 +48,12 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
             </label>
             <label className="text-sm">
               <span className="mb-1 block text-xs font-medium text-ink-3">Business date</span>
-              <input type="date" name="businessDate" defaultValue={filter.businessDate ?? ""} className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm" />
+              <input
+                type="date"
+                name="businessDate"
+                defaultValue={filter.businessDate ?? ""}
+                className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm"
+              />
             </label>
             <label className="text-sm">
               <span className="mb-1 block text-xs font-medium text-ink-3">Origin</span>
@@ -57,16 +66,22 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
             <button className={buttonStyles.secondary}>Filter</button>
           </form>
           {rows.length === 0 ? (
-            <EmptyState title="No files found">{total === 0 && !raw.source && !raw.businessDate ? "Upload a participant file or generate a simulated day to begin." : "No files match these filters."}</EmptyState>
+            <EmptyState title="No files found">
+              {total === 0 && !raw.source && !raw.businessDate
+                ? "Upload a participant file or generate a simulated day to begin."
+                : "No files match these filters."}
+            </EmptyState>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+            <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Scrollable table">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th scope="col">File</th>
                     <th scope="col">Participant</th>
                     <th scope="col">Business date</th>
-                    <th scope="col" className="num">Rows</th>
+                    <th scope="col" className="num">
+                      Rows
+                    </th>
                     <th scope="col">Origin</th>
                     <th scope="col">Added</th>
                   </tr>
@@ -111,7 +126,9 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
               ))}
             </ul>
             <p className="mt-3 text-xs text-ink-3">
-              Status accepts common codes (SUCCESS/S/00/SETTLED, FAILED/F/DECLINED, PENDING/DEEMED/TIMEOUT, REVERSED). Amounts are rupees with up to two decimals; timestamps need a timezone offset. Refund and reversal rows must name the original reference in <span className="mono">parent_ref</span>.
+              Status accepts common codes (SUCCESS/S/00/SETTLED, FAILED/F/DECLINED, PENDING/DEEMED/TIMEOUT, REVERSED). Amounts are rupees with up to
+              two decimals; timestamps need a timezone offset. Refund and reversal rows must name the original reference in{" "}
+              <span className="mono">parent_ref</span>.
             </p>
             <p className="mt-2 text-xs text-ink-3">Participants: {SOURCE_SYSTEMS.map((s) => SOURCE_LABELS[s]).join(", ")}.</p>
           </Card>

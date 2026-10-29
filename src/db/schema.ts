@@ -61,10 +61,7 @@ export const users = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`),
-    check("users_email_shape", sql`${t.email} ~ '^[^@\\s]+@[^@\\s]+$'`),
-  ],
+  (t) => [uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`), check("users_email_shape", sql`${t.email} ~ '^[^@\\s]+@[^@\\s]+$'`)],
 );
 
 export const sessions = pgTable(
@@ -72,7 +69,9 @@ export const sessions = pgTable(
   {
     /** SHA-256 of the session token; the token itself only ever lives in the user's cookie. */
     id: text("id").primaryKey(),
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: ts("expires_at").notNull(),
     lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
     createdAt: ts("created_at").notNull().defaultNow(),
@@ -87,7 +86,9 @@ export const passwordTokens = pgTable(
   {
     /** SHA-256 of the one-time token. */
     id: text("id").primaryKey(),
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     purpose: text("purpose", { enum: ["INVITE", "RESET"] }).notNull(),
     expiresAt: ts("expires_at").notNull(),
     usedAt: ts("used_at"),
@@ -115,11 +116,7 @@ export const auditEvents = pgTable(
     ip: text("ip"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [
-    index("audit_created_idx").on(t.createdAt),
-    index("audit_entity_idx").on(t.entityType, t.entityId),
-    index("audit_actor_idx").on(t.actorId),
-  ],
+  (t) => [index("audit_created_idx").on(t.createdAt), index("audit_entity_idx").on(t.entityType, t.entityId), index("audit_actor_idx").on(t.actorId)],
 );
 
 export const appSettings = pgTable("app_settings", {
@@ -153,7 +150,9 @@ export const simTransactions = pgTable(
   "sim_transactions",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    simulationId: uuid("simulation_id").notNull().references(() => simulations.id, { onDelete: "cascade" }),
+    simulationId: uuid("simulation_id")
+      .notNull()
+      .references(() => simulations.id, { onDelete: "cascade" }),
     txnRef: text("txn_ref").notNull(),
     parentRef: text("parent_ref"),
     kind: text("kind", { enum: ["PAYMENT", "REFUND"] }).notNull(),
@@ -173,10 +172,7 @@ export const simTransactions = pgTable(
     failureStage: text("failure_stage"),
     timeline: jsonb("timeline").notNull(),
   },
-  (t) => [
-    uniqueIndex("sim_txn_ref_idx").on(t.simulationId, t.txnRef),
-    index("sim_txn_ref_lookup_idx").on(t.txnRef),
-  ],
+  (t) => [uniqueIndex("sim_txn_ref_idx").on(t.simulationId, t.txnRef), index("sim_txn_ref_lookup_idx").on(t.txnRef)],
 );
 
 // ---- Participant files ------------------------------------------------------------------------
@@ -196,17 +192,16 @@ export const sourceFiles = pgTable(
     uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex("source_files_dedupe_idx").on(t.source, t.sha256),
-    index("source_files_date_idx").on(t.businessDate, t.source),
-  ],
+  (t) => [uniqueIndex("source_files_dedupe_idx").on(t.source, t.sha256), index("source_files_date_idx").on(t.businessDate, t.source)],
 );
 
 export const sourceRecords = pgTable(
   "source_records",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    fileId: uuid("file_id").notNull().references(() => sourceFiles.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => sourceFiles.id, { onDelete: "cascade" }),
     source: sourceSystem("source").notNull(),
     lineNo: integer("line_no").notNull(),
     txnRef: text("txn_ref").notNull(),
@@ -256,8 +251,12 @@ export const reconRuns = pgTable(
 export const reconRunFiles = pgTable(
   "recon_run_files",
   {
-    runId: uuid("run_id").notNull().references(() => reconRuns.id, { onDelete: "cascade" }),
-    fileId: uuid("file_id").notNull().references(() => sourceFiles.id, { onDelete: "restrict" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => reconRuns.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => sourceFiles.id, { onDelete: "restrict" }),
   },
   (t) => [primaryKey({ columns: [t.runId, t.fileId] }), index("recon_run_files_file_idx").on(t.fileId)],
 );
@@ -266,7 +265,9 @@ export const reconTransactions = pgTable(
   "recon_transactions",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    runId: uuid("run_id").notNull().references(() => reconRuns.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => reconRuns.id, { onDelete: "cascade" }),
     txnRef: text("txn_ref").notNull(),
     method: paymentMethod("method").notNull(),
     amountPaise: money("amount_paise").notNull(),
@@ -290,7 +291,9 @@ export const exceptions = pgTable(
   "exceptions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    runId: uuid("run_id").notNull().references(() => reconRuns.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => reconRuns.id, { onDelete: "cascade" }),
     txnRef: text("txn_ref").notNull(),
     category: exceptionCategory("category").notNull(),
     severity: severity("severity").notNull(),
@@ -333,7 +336,9 @@ export const exceptionActivity = pgTable(
   "exception_activity",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    exceptionId: uuid("exception_id").notNull().references(() => exceptions.id, { onDelete: "cascade" }),
+    exceptionId: uuid("exception_id")
+      .notNull()
+      .references(() => exceptions.id, { onDelete: "cascade" }),
     actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
     kind: text("kind", { enum: ["COMMENT", "STATUS", "ASSIGNMENT"] }).notNull(),
     body: text("body").notNull(),

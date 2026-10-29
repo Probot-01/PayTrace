@@ -27,7 +27,10 @@ function clean(over: Partial<NormalizedRecord> = {}): NormalizedRecord[] {
   return (["SWITCH", "ISSUER", "ACQUIRER", "MERCHANT", "SETTLEMENT"] as const).map((s) => rec(s, "SUCCESS", over));
 }
 
-const categories = (records: NormalizedRecord[]) => reconcile(records).exceptions.map((e) => e.category).sort();
+const categories = (records: NormalizedRecord[]) =>
+  reconcile(records)
+    .exceptions.map((e) => e.category)
+    .sort();
 
 describe("reconcile: clean flows", () => {
   it("matches a payment every participant agrees on", () => {

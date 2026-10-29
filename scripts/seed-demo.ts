@@ -28,13 +28,22 @@ async function main() {
   const hash = await hashPassword(password);
   let adminId: string | undefined;
   for (const u of demo) {
-    const existing = (await db.select().from(users).where(sql`lower(${users.email}) = ${u.email}`).limit(1))[0];
+    const existing = (
+      await db
+        .select()
+        .from(users)
+        .where(sql`lower(${users.email}) = ${u.email}`)
+        .limit(1)
+    )[0];
     if (existing) {
       console.log(`= ${u.email} exists, left unchanged`);
       if (u.role === "admin") adminId = existing.id;
       continue;
     }
-    const [row] = await db.insert(users).values({ ...u, passwordHash: hash, passwordChangedAt: new Date() }).returning();
+    const [row] = await db
+      .insert(users)
+      .values({ ...u, passwordHash: hash, passwordChangedAt: new Date() })
+      .returning();
     if (u.role === "admin") adminId = row.id;
     console.log(`+ ${u.email} (${u.role})`);
   }
@@ -50,7 +59,9 @@ async function main() {
   const { files } = await getSimulation(sim.id);
   await createRun(actor, { businessDate: yesterday, fileIds: files.map((f) => f.id) });
   await drainJobs("seed");
-  console.log(`Demo simulation and reconciliation for ${yesterday} created. Demo password: ${password === "PayTrace-Demo-2026" ? "PayTrace-Demo-2026 (default)" : "(as provided)"}`);
+  console.log(
+    `Demo simulation and reconciliation for ${yesterday} created. Demo password: ${password === "PayTrace-Demo-2026" ? "PayTrace-Demo-2026 (default)" : "(as provided)"}`,
+  );
   await closeDb();
 }
 

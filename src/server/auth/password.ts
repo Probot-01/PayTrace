@@ -25,8 +25,18 @@ export async function verifyPassword(passwordHash: string | null, password: stri
 }
 
 const COMMON = new Set([
-  "password1234", "123456789012", "qwertyuiop12", "paytrace1234", "letmein12345", "welcome12345",
-  "administrator", "password@123", "admin@123456", "india@123456", "changeme1234", "iloveyou1234",
+  "password1234",
+  "123456789012",
+  "qwertyuiop12",
+  "paytrace1234",
+  "letmein12345",
+  "welcome12345",
+  "administrator",
+  "password@123",
+  "admin@123456",
+  "india@123456",
+  "changeme1234",
+  "iloveyou1234",
 ]);
 
 /** NIST SP 800-63B style: length over complexity rules, plus a blocklist of obvious choices. */

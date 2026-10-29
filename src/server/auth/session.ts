@@ -78,9 +78,7 @@ export async function invalidateSession(sessionId: string) {
 
 export async function invalidateUserSessions(userId: string, exceptSessionId?: string) {
   const db = getDb();
-  await db
-    .delete(sessions)
-    .where(exceptSessionId ? and(eq(sessions.userId, userId), ne(sessions.id, exceptSessionId)) : eq(sessions.userId, userId));
+  await db.delete(sessions).where(exceptSessionId ? and(eq(sessions.userId, userId), ne(sessions.id, exceptSessionId)) : eq(sessions.userId, userId));
 }
 
 export async function purgeExpiredSessions() {

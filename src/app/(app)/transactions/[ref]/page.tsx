@@ -22,14 +22,20 @@ export default async function TracePage({ params }: { params: Promise<{ ref: str
 
   return (
     <>
-      <PageHeader breadcrumb={[{ href: "/transactions", label: "Transaction trace" }]} title={ref} description="Every record that carries this reference, from every participant file, and every run's verdict." />
+      <PageHeader
+        breadcrumb={[{ href: "/transactions", label: "Transaction trace" }]}
+        title={ref}
+        description="Every record that carries this reference, from every participant file, and every run's verdict."
+      />
       {empty ? (
-        <EmptyState title="Reference not found">No participant file contains {ref}. Check the reference, or upload the file it should be in.</EmptyState>
+        <EmptyState title="Reference not found">
+          No participant file contains {ref}. Check the reference, or upload the file it should be in.
+        </EmptyState>
       ) : (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             <Card title="Participant records" id="records">
-              <div className="-mx-4 -mb-4 overflow-x-auto">
+              <div className="-mx-4 -mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -37,7 +43,9 @@ export default async function TracePage({ params }: { params: Promise<{ ref: str
                       <th scope="col">Participant</th>
                       <th scope="col">Type</th>
                       <th scope="col">Status</th>
-                      <th scope="col" className="num">Amount</th>
+                      <th scope="col" className="num">
+                        Amount
+                      </th>
                       <th scope="col">File</th>
                     </tr>
                   </thead>
@@ -55,7 +63,7 @@ export default async function TracePage({ params }: { params: Promise<{ ref: str
                         </td>
                         <td className="num">{formatINR(r.amountPaise)}</td>
                         <td className="text-xs">
-                          <Link href={`/files/${r.fileId}`} className="text-accent hover:underline">
+                          <Link href={`/files/${r.fileId}`} className="text-accent underline underline-offset-2 hover:decoration-2">
                             {filename}
                           </Link>
                           <div className="text-ink-3">{formatBusinessDate(businessDate)}</div>
@@ -69,13 +77,23 @@ export default async function TracePage({ params }: { params: Promise<{ ref: str
             {sim ? (
               <Card title="Simulated switch timeline" description={`Ground truth from “${sim.simName}”.`} id="timeline">
                 <p className="mb-3 text-sm">
-                  Injected: <strong>{FAULT_LABELS[sim.tx.injectedFault as InjectedFault] ?? sim.tx.injectedFault}</strong> · switch {sim.tx.switchStatus.toLowerCase()} · bank {sim.tx.bankStatus.toLowerCase()} · merchant {sim.tx.merchantStatus.toLowerCase()} · settlement {sim.tx.settlementStatus.toLowerCase().replace("_", " ")} · refund {sim.tx.refundStatus.toLowerCase()}
+                  Injected: <strong>{FAULT_LABELS[sim.tx.injectedFault as InjectedFault] ?? sim.tx.injectedFault}</strong> · switch{" "}
+                  {sim.tx.switchStatus.toLowerCase()} · bank {sim.tx.bankStatus.toLowerCase()} · merchant {sim.tx.merchantStatus.toLowerCase()} ·
+                  settlement {sim.tx.settlementStatus.toLowerCase().replace("_", " ")} · refund {sim.tx.refundStatus.toLowerCase()}
                 </p>
                 <ol className="space-y-1 border-l border-line pl-4 text-sm">
                   {(sim.tx.timeline as TimelineEvent[]).map((t, i) => (
                     <li key={i} className="relative">
-                      <span aria-hidden className={cx("absolute -left-[21px] top-1.5 h-2 w-2 rounded-full", t.status === "OK" ? "bg-good" : t.status === "PENDING" ? "bg-warning" : "bg-critical")} />
-                      <span className="mono text-xs text-ink-3">{formatTime(t.at)}</span> <span className="font-medium">{t.stage.replaceAll("_", " ").toLowerCase()}</span> · {t.status.toLowerCase()} <span className="text-ink-3">(+{t.latencyMs.toLocaleString("en-IN")} ms)</span>
+                      <span
+                        aria-hidden
+                        className={cx(
+                          "absolute -left-[21px] top-1.5 h-2 w-2 rounded-full",
+                          t.status === "OK" ? "bg-good" : t.status === "PENDING" ? "bg-warning" : "bg-critical",
+                        )}
+                      />
+                      <span className="mono text-xs text-ink-3">{formatTime(t.at)}</span>{" "}
+                      <span className="font-medium">{t.stage.replaceAll("_", " ").toLowerCase()}</span> · {t.status.toLowerCase()}{" "}
+                      <span className="text-ink-3">(+{t.latencyMs.toLocaleString("en-IN")} ms)</span>
                       {t.note ? <span className="text-ink-2"> · {t.note}</span> : null}
                     </li>
                   ))}
@@ -89,10 +107,16 @@ export default async function TracePage({ params }: { params: Promise<{ ref: str
                 <ul className="space-y-2 text-sm">
                   {trace.results.map((r) => (
                     <li key={r.id}>
-                      <Link href={`/runs/${r.runId}`} className="text-accent hover:underline">
+                      <Link href={`/runs/${r.runId}`} className="text-accent underline underline-offset-2 hover:decoration-2">
                         Run {r.runId.slice(0, 8)}
                       </Link>
-                      : {r.matched ? <span className="text-good">matched</span> : <span className="text-critical">{r.exceptionCount} exception(s)</span>} · {r.outcome.toLowerCase()}
+                      :{" "}
+                      {r.matched ? (
+                        <span className="text-good">matched</span>
+                      ) : (
+                        <span className="text-critical">{r.exceptionCount} exception(s)</span>
+                      )}{" "}
+                      · {r.outcome.toLowerCase()}
                     </li>
                   ))}
                 </ul>

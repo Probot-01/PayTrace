@@ -114,7 +114,10 @@ export async function listExceptions(f: ExceptionFilter, userId: string) {
       .orderBy(...orderFor(f.sort))
       .limit(f.pageSize)
       .offset((f.page - 1) * f.pageSize),
-    db.select({ total: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) }).from(exceptions).where(where),
+    db
+      .select({ total: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) })
+      .from(exceptions)
+      .where(where),
   ]);
   return { rows, total: totals.total, affectedPaise: totals.affected ?? 0 };
 }
@@ -123,8 +126,23 @@ const EXPORT_LIMIT = 100_000;
 
 export async function* exportExceptionsCsv(f: ExceptionFilter, userId: string): AsyncGenerator<string> {
   yield toCsvLine([
-    "exception_id", "txn_ref", "category", "severity", "status", "payment_method", "amount_inr", "affected_inr",
-    "failure_point", "requires_manual", "txn_at", "tat_due_at", "tat_basis", "suspected_cause", "recommended_action", "assignee", "run_id",
+    "exception_id",
+    "txn_ref",
+    "category",
+    "severity",
+    "status",
+    "payment_method",
+    "amount_inr",
+    "affected_inr",
+    "failure_point",
+    "requires_manual",
+    "txn_at",
+    "tat_due_at",
+    "tat_basis",
+    "suspected_cause",
+    "recommended_action",
+    "assignee",
+    "run_id",
   ]);
   const db = getDb();
   const where = whereFor(f, userId);
@@ -141,11 +159,28 @@ export async function* exportExceptionsCsv(f: ExceptionFilter, userId: string): 
     if (!rows.length) return;
     let chunk = "";
     for (const { e, assigneeName } of rows) {
-      chunk += [
-        e.id, e.txnRef, CATEGORY_LABELS[e.category], e.severity, e.status, e.method, paiseToPlain(e.amountPaise),
-        paiseToPlain(e.affectedPaise), e.failurePoint ?? "", e.requiresManual ? "yes" : "no", toIstIso(e.txnAt),
-        toIstIso(e.tatDueAt), e.tatBasis, e.suspectedCause, e.recommendedAction, assigneeName ?? "", e.runId,
-      ].map(csvCell).join(",") + "\r\n";
+      chunk +=
+        [
+          e.id,
+          e.txnRef,
+          CATEGORY_LABELS[e.category],
+          e.severity,
+          e.status,
+          e.method,
+          paiseToPlain(e.amountPaise),
+          paiseToPlain(e.affectedPaise),
+          e.failurePoint ?? "",
+          e.requiresManual ? "yes" : "no",
+          toIstIso(e.txnAt),
+          toIstIso(e.tatDueAt),
+          e.tatBasis,
+          e.suspectedCause,
+          e.recommendedAction,
+          assigneeName ?? "",
+          e.runId,
+        ]
+          .map(csvCell)
+          .join(",") + "\r\n";
     }
     yield chunk;
     if (rows.length < page) return;
@@ -225,10 +260,22 @@ export const transitionSchema = z.discriminatedUnion("action", [
     resolutionCode: z.enum(RESOLUTION_CODES, { error: "Choose a resolution." }),
     note: z.string().trim().min(5, "Explain the resolution (at least 5 characters).").max(2_000),
   }),
-  z.object({ action: z.literal("dismiss"), version: z.number().int().min(1), note: z.string().trim().min(5, "Explain why this is not a real break.").max(2_000) }),
+  z.object({
+    action: z.literal("dismiss"),
+    version: z.number().int().min(1),
+    note: z.string().trim().min(5, "Explain why this is not a real break.").max(2_000),
+  }),
   z.object({ action: z.literal("approve"), version: z.number().int().min(1), note: z.string().trim().max(2_000).optional() }),
-  z.object({ action: z.literal("reject"), version: z.number().int().min(1), note: z.string().trim().min(5, "Tell the analyst what is missing.").max(2_000) }),
-  z.object({ action: z.literal("reopen"), version: z.number().int().min(1), note: z.string().trim().min(5, "Explain why it is being reopened.").max(2_000) }),
+  z.object({
+    action: z.literal("reject"),
+    version: z.number().int().min(1),
+    note: z.string().trim().min(5, "Tell the analyst what is missing.").max(2_000),
+  }),
+  z.object({
+    action: z.literal("reopen"),
+    version: z.number().int().min(1),
+    note: z.string().trim().min(5, "Explain why it is being reopened.").max(2_000),
+  }),
 ]);
 export type TransitionInput = z.infer<typeof transitionSchema>;
 
@@ -319,7 +366,9 @@ export async function transitionException(actor: Actor, id: string, input: Trans
       .where(and(eq(exceptions.id, id), eq(exceptions.version, input.version)))
       .returning();
     if (!updated) throw STALE();
-    await tx.insert(exceptionActivity).values({ exceptionId: id, actorId: actor.id, kind: "STATUS", body: message, fromStatus: e.status, toStatus: to });
+    await tx
+      .insert(exceptionActivity)
+      .values({ exceptionId: id, actorId: actor.id, kind: "STATUS", body: message, fromStatus: e.status, toStatus: to });
     await audit(actor, `exception.${input.action}`, "exception", id, { from: e.status, to, txnRef: e.txnRef }, tx);
     return updated;
   });
@@ -333,7 +382,8 @@ export async function assignException(actor: Actor, id: string, input: z.infer<t
   let name = "nobody";
   if (input.assigneeId) {
     const [u] = await getDb().select().from(users).where(eq(users.id, input.assigneeId)).limit(1);
-    if (!u || !u.isActive || u.role === "viewer") throw validationFailed({ fieldErrors: { assigneeId: ["Choose an active analyst, supervisor or admin."] } });
+    if (!u || !u.isActive || u.role === "viewer")
+      throw validationFailed({ fieldErrors: { assigneeId: ["Choose an active analyst, supervisor or admin."] } });
     name = u.name;
   }
   return getDb().transaction(async (tx) => {
@@ -352,10 +402,7 @@ export async function assignException(actor: Actor, id: string, input: z.infer<t
 export async function commentOnException(actor: Actor, id: string, input: z.infer<typeof commentSchema>) {
   if (!can(actor.role, "exceptions:work")) throw forbidden();
   await loadForUpdate(id);
-  const [row] = await getDb()
-    .insert(exceptionActivity)
-    .values({ exceptionId: id, actorId: actor.id, kind: "COMMENT", body: input.body })
-    .returning();
+  const [row] = await getDb().insert(exceptionActivity).values({ exceptionId: id, actorId: actor.id, kind: "COMMENT", body: input.body }).returning();
   await audit(actor, "exception.comment", "exception", id, {});
   return row;
 }

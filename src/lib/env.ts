@@ -3,7 +3,10 @@ import { z } from "zod";
 /** Server configuration, validated once at first use. Never import this from client components. */
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  DATABASE_URL: z.string().url().refine((v) => v.startsWith("postgres"), "must be a postgres:// URL"),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .refine((v) => v.startsWith("postgres"), "must be a postgres:// URL"),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   /** Public origin of the app, used for CSRF origin checks and links in emails. */
   APP_URL: z.string().url(),

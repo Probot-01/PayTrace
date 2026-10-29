@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  CSV_HEADER_LINE,
-  csvCell,
-  looksLikeCardNumber,
-  normaliseStatus,
-  parseParticipantCsv,
-  recordToCsvLine,
-} from "@/domain/ingest/csv-format";
+import { CSV_HEADER_LINE, csvCell, looksLikeCardNumber, normaliseStatus, parseParticipantCsv, recordToCsvLine } from "@/domain/ingest/csv-format";
 
 const HEADER = CSV_HEADER_LINE.trim();
 const row = (over: Record<string, string> = {}) => {
@@ -25,7 +18,9 @@ const row = (over: Record<string, string> = {}) => {
     event_at: "2026-10-28T12:00:00+05:30",
     ...over,
   };
-  return HEADER.split(",").map((k) => base[k]).join(",");
+  return HEADER.split(",")
+    .map((k) => base[k])
+    .join(",");
 };
 
 describe("parseParticipantCsv", () => {
@@ -83,7 +78,7 @@ describe("parseParticipantCsv", () => {
 
 describe("CSV helpers", () => {
   it("neutralises spreadsheet formulas", () => {
-    expect(csvCell("=HYPERLINK(\"x\")")).toBe(`"'=HYPERLINK(""x"")"`);
+    expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
     expect(csvCell("@SUM(A1)")).toBe("'@SUM(A1)");
     expect(csvCell(-5)).toBe("-5");
   });

@@ -31,7 +31,10 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
     throw err;
   }
   const simIds = [...new Set(run.files.map((f) => f.simulationId).filter(Boolean))] as string[];
-  const accuracy = run.status === "COMPLETED" && simIds.length === 1 && run.files.every((f) => f.simulationId === simIds[0]) ? await detectionAccuracy(simIds[0], id) : null;
+  const accuracy =
+    run.status === "COMPLETED" && simIds.length === 1 && run.files.every((f) => f.simulationId === simIds[0])
+      ? await detectionAccuracy(simIds[0], id)
+      : null;
   const stats = run.stats;
   const duration = run.startedAt && run.finishedAt ? ((run.finishedAt.getTime() - run.startedAt.getTime()) / 1000).toFixed(1) : null;
 
@@ -59,7 +62,12 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
               </>
             ) : null}
             {can(user.role, "runs:create") && (run.status === "COMPLETED" || run.status === "FAILED") ? (
-              <PostButton url="/api/v1/runs" body={{ businessDate: run.businessDate, fileIds: run.files.map((f) => f.id) }} label="Re-run" navigateTo={(r) => `/runs/${r.id}`} />
+              <PostButton
+                url="/api/v1/runs"
+                body={{ businessDate: run.businessDate, fileIds: run.files.map((f) => f.id) }}
+                label="Re-run"
+                navigatePrefix="/runs/"
+              />
             ) : null}
             {can(user.role, "runs:delete") && (run.status === "COMPLETED" || run.status === "FAILED") ? (
               <ConfirmAction
@@ -77,7 +85,10 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
 
       {run.status === "QUEUED" || run.status === "RUNNING" ? (
         <Card>
-          <JobPoller url={`/api/v1/runs/${id}`} label={run.status === "QUEUED" ? "Waiting for a worker to pick up the run…" : "Comparing participant records…"} />
+          <JobPoller
+            url={`/api/v1/runs/${id}`}
+            label={run.status === "QUEUED" ? "Waiting for a worker to pick up the run…" : "Comparing participant records…"}
+          />
         </Card>
       ) : null}
       {run.status === "FAILED" ? (
@@ -118,7 +129,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                   <li key={f.id} className="flex flex-wrap justify-between gap-2">
                     <span>
                       <span className="text-ink-3">{SOURCE_SHORT_LABELS[f.source]}:</span>{" "}
-                      <Link href={`/files/${f.id}`} className="text-accent hover:underline">
+                      <Link href={`/files/${f.id}`} className="text-accent underline underline-offset-2 hover:decoration-2">
                         {f.filename}
                       </Link>
                     </span>
@@ -140,18 +151,27 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         >
           <dl className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatTile label="Faults that should be flagged" value={formatCount(accuracy.expectedFaults)} />
-            <StatTile label="Detected with correct category" value={formatCount(accuracy.detected)} sub={`Recall ${formatPercent(accuracy.recall)}`} tone={accuracy.recall === 1 ? "good" : undefined} />
+            <StatTile
+              label="Detected with correct category"
+              value={formatCount(accuracy.detected)}
+              sub={`Recall ${formatPercent(accuracy.recall)}`}
+              tone={accuracy.recall === 1 ? "good" : undefined}
+            />
             <StatTile label="Exceptions raised" value={formatCount(accuracy.exceptionsRaised)} />
             <StatTile label="Precision" value={formatPercent(accuracy.precision)} sub="Raised exceptions that match an injected fault" />
           </dl>
-          <div className="-mx-4 -mb-4 overflow-x-auto">
+          <div className="-mx-4 -mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
             <table className="data-table">
               <thead>
                 <tr>
                   <th scope="col">Injected fault</th>
                   <th scope="col">Expected category</th>
-                  <th scope="col" className="num">Injected</th>
-                  <th scope="col" className="num">Detected</th>
+                  <th scope="col" className="num">
+                    Injected
+                  </th>
+                  <th scope="col" className="num">
+                    Detected
+                  </th>
                 </tr>
               </thead>
               <tbody>

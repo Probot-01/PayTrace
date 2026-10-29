@@ -30,6 +30,7 @@ import { requirePage } from "@/server/auth/current";
 import { can } from "@/server/auth/permissions";
 import { completedRunOptions } from "@/server/services/dashboard";
 import { exceptionFilterSchema, listExceptions } from "@/server/services/exceptions";
+import { nonEmptyParams } from "@/lib/query";
 
 export const metadata: Metadata = { title: "Exceptions" };
 
@@ -41,7 +42,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
   const { user, allowed } = await requirePage("exceptions:view");
   if (!allowed) return <AccessDenied />;
   const raw = await searchParams;
-  const parsed = exceptionFilterSchema.safeParse(raw);
+  const parsed = exceptionFilterSchema.safeParse(nonEmptyParams(raw));
   const filter = parsed.success ? parsed.data : exceptionFilterSchema.parse({});
   const [{ rows, total, affectedPaise }, runs] = await Promise.all([listExceptions(filter, user.id), completedRunOptions()]);
 
@@ -195,7 +196,12 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
           <label htmlFor="sort" className="text-ink-3">
             Sort by
           </label>
-          <AutoSubmitSelect id="sort" name="sort" defaultValue={filter.sort} className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm">
+          <AutoSubmitSelect
+            id="sort"
+            name="sort"
+            defaultValue={filter.sort}
+            className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm"
+          >
             <option value="severity">Risk (severity, then amount)</option>
             <option value="due">TAT deadline</option>
             <option value="amount">Amount affected</option>
@@ -213,7 +219,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
           {anyFilter ? "Try widening the filters or clearing them." : "Exceptions appear here after a reconciliation run finds discrepancies."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0} role="region" aria-label="Scrollable table">
           <table className="data-table">
             <thead>
               <tr>

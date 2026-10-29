@@ -9,7 +9,8 @@ export const test = base.extend<{ consoleErrors: string[] }>({
     async ({ page }, use) => {
       const errors: string[] = [];
       page.on("console", (m) => {
-        if (m.type() === "error") errors.push(m.text());
+        // Expected 4xx API answers (e.g. a wrong password) are logged by the browser; they are not app errors.
+        if (m.type() === "error" && !/Failed to load resource: the server responded with a status of 4\d\d/.test(m.text())) errors.push(m.text());
       });
       page.on("pageerror", (e) => errors.push(e.message));
       await use(errors);
@@ -24,5 +25,6 @@ export { expect };
 export async function openFirstException(page: Page, query = "") {
   await page.goto(`/exceptions${query}`);
   await page.locator("table.data-table tbody tr a").first().click();
+  await page.waitForURL(/\/exceptions\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }

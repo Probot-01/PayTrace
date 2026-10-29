@@ -103,7 +103,10 @@ export async function uploadParticipantFile(
 
 export const fileListSchema = z.object({
   source: z.enum(SOURCE_SYSTEMS).optional(),
-  businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  businessDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   origin: z.enum(["UPLOAD", "SIMULATOR"]).optional(),
   page: z.coerce.number().int().min(1).max(10_000).default(1),
   pageSize: z.coerce.number().int().min(10).max(100).default(25),
@@ -189,11 +192,7 @@ export async function deleteFile(actor: AuditActor, id: string) {
 
 /** The latest file per participant for a business date: the default selection for a new run. */
 export async function latestFilesForDate(businessDate: string) {
-  const rows = await getDb()
-    .select()
-    .from(sourceFiles)
-    .where(eq(sourceFiles.businessDate, businessDate))
-    .orderBy(desc(sourceFiles.createdAt));
+  const rows = await getDb().select().from(sourceFiles).where(eq(sourceFiles.businessDate, businessDate)).orderBy(desc(sourceFiles.createdAt));
   const picked = new Map<SourceSystem, (typeof rows)[number]>();
   for (const r of rows) if (!picked.has(r.source)) picked.set(r.source, r);
   return [...picked.values()];

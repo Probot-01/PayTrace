@@ -29,7 +29,11 @@ export default async function AccountPage() {
                     {s.ip ? ` · ${s.ip}` : ""} · expires {formatDateTime(s.expiresAt)}
                   </p>
                 </div>
-                {s.id === session.sessionId ? <span className="shrink-0 text-xs font-medium text-good">This device</span> : <RevokeSession sessionId={s.id} />}
+                {s.id === session.sessionId ? (
+                  <span className="shrink-0 text-xs font-medium text-good">This device</span>
+                ) : (
+                  <RevokeSession sessionId={s.id} />
+                )}
               </li>
             ))}
           </ul>

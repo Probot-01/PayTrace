@@ -16,7 +16,17 @@ export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
 }
 
-export function PageHeader({ title, description, actions, breadcrumb }: { title: string; description?: ReactNode; actions?: ReactNode; breadcrumb?: { href: string; label: string }[] }) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+  breadcrumb,
+}: {
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  breadcrumb?: { href: string; label: string }[];
+}) {
   return (
     <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
@@ -37,14 +47,32 @@ export function PageHeader({ title, description, actions, breadcrumb }: { title:
         <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
         {description ? <p className="mt-1 max-w-3xl text-sm text-ink-2">{description}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="flex max-w-full min-w-0 shrink-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
   );
 }
 
-export function Card({ title, description, actions, children, className, id }: { title?: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; id?: string }) {
+export function Card({
+  title,
+  description,
+  actions,
+  children,
+  className,
+  id,
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  id?: string;
+}) {
   return (
-    <section id={id} className={cx("rounded-lg border border-line bg-surface", className)} aria-labelledby={title && id ? `${id}-title` : undefined}>
+    <section
+      id={id}
+      className={cx("min-w-0 rounded-lg border border-line bg-surface", className)}
+      aria-labelledby={title && id ? `${id}-title` : undefined}
+    >
       {title || actions ? (
         <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
           <div>
@@ -80,7 +108,14 @@ export function StatTile({ label, value, sub, tone }: { label: string; value: Re
   return (
     <div className="rounded-lg border border-line bg-surface px-4 py-3">
       <dt className="text-xs font-medium text-ink-3">{label}</dt>
-      <dd className={cx("mt-1 text-2xl font-semibold tracking-tight", tone === "critical" ? "text-critical" : tone === "good" ? "text-good" : tone === "warning" ? "text-warning" : "text-ink")}>{value}</dd>
+      <dd
+        className={cx(
+          "mt-1 text-2xl font-semibold tracking-tight",
+          tone === "critical" ? "text-critical" : tone === "good" ? "text-good" : tone === "warning" ? "text-warning" : "text-ink",
+        )}
+      >
+        {value}
+      </dd>
       {sub ? <dd className="mt-0.5 text-xs text-ink-3">{sub}</dd> : null}
     </div>
   );
@@ -137,7 +172,11 @@ const STATUS_STYLE: Record<ExceptionStatus, string> = {
 };
 
 export function StatusBadge({ status }: { status: ExceptionStatus }) {
-  return <span className={cx("inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium", STATUS_STYLE[status])}>{EXCEPTION_STATUS_LABELS[status]}</span>;
+  return (
+    <span className={cx("inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium", STATUS_STYLE[status])}>
+      {EXCEPTION_STATUS_LABELS[status]}
+    </span>
+  );
 }
 
 export function JobStatusBadge({ status }: { status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" }) {
@@ -215,7 +254,15 @@ export function AccessDenied({ what = "this page" }: { what?: string }) {
 }
 
 /** Horizontal bar list: one series, magnitude only, labelled directly so colour never carries meaning. */
-export function BarList({ items, formatValue, ariaLabel }: { items: { key: string; label: ReactNode; value: number; detail?: string; href?: string }[]; formatValue: (v: number) => string; ariaLabel: string }) {
+export function BarList({
+  items,
+  formatValue,
+  ariaLabel,
+}: {
+  items: { key: string; label: ReactNode; value: number; detail?: string; href?: string }[];
+  formatValue: (v: number) => string;
+  ariaLabel: string;
+}) {
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
     <ul aria-label={ariaLabel} className="space-y-2.5">
@@ -235,7 +282,10 @@ export function BarList({ items, formatValue, ariaLabel }: { items: { key: strin
           </>
         );
         return (
-          <li key={item.key} title={`${typeof item.label === "string" ? item.label : item.key}: ${formatValue(item.value)}${item.detail ? ` (${item.detail})` : ""}`}>
+          <li
+            key={item.key}
+            title={`${typeof item.label === "string" ? item.label : item.key}: ${formatValue(item.value)}${item.detail ? ` (${item.detail})` : ""}`}
+          >
             {item.href ? (
               <Link href={item.href} className="block rounded-md p-1 -m-1 hover:bg-surface-2">
                 {content}

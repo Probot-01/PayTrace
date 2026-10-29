@@ -16,10 +16,7 @@ const IST_OFFSET_MS = 330 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
-export type Compensation =
-  | { kind: "FLAT_PER_DAY"; paisePerDay: number }
-  | { kind: "PENAL_INTEREST"; spreadBps: number }
-  | { kind: "NONE" };
+export type Compensation = { kind: "FLAT_PER_DAY"; paisePerDay: number } | { kind: "PENAL_INTEREST"; spreadBps: number } | { kind: "NONE" };
 
 export interface TatRule {
   dueAt: Date;
@@ -54,10 +51,8 @@ export function tatFor(category: ExceptionCategory, method: PaymentMethod, txnAt
   switch (category) {
     case "FAILED_BUT_DEBITED":
     case "DUPLICATE":
-      if (method === "UPI")
-        return tPlus(txnAt, 1, "RBI", "UPI: beneficiary not credited, reverse by T+1; ₹100/day beyond", FLAT_100);
-      if (isCard)
-        return tPlus(txnAt, 5, "RBI", "Card: confirmation not received at merchant, auto-reverse within T+5; ₹100/day beyond", FLAT_100);
+      if (method === "UPI") return tPlus(txnAt, 1, "RBI", "UPI: beneficiary not credited, reverse by T+1; ₹100/day beyond", FLAT_100);
+      if (isCard) return tPlus(txnAt, 5, "RBI", "Card: confirmation not received at merchant, auto-reverse within T+5; ₹100/day beyond", FLAT_100);
       if (method === "NEFT")
         return {
           dueAt: new Date(txnAt.getTime() + 2 * HOUR_MS),
@@ -75,8 +70,7 @@ export function tatFor(category: ExceptionCategory, method: PaymentMethod, txnAt
     case "SUCCESS_MERCHANT_NOT_UPDATED":
       if (method === "UPI")
         return tPlus(txnAt, 5, "RBI", "UPI merchant payment: confirmation not received, auto-reverse within T+5; ₹100/day beyond", FLAT_100);
-      if (isCard)
-        return tPlus(txnAt, 5, "RBI", "Card: charge slip / confirmation not generated, auto-reverse within T+5; ₹100/day beyond", FLAT_100);
+      if (isCard) return tPlus(txnAt, 5, "RBI", "Card: charge slip / confirmation not generated, auto-reverse within T+5; ₹100/day beyond", FLAT_100);
       return tPlus(txnAt, 1, "INTERNAL", "Beneficiary credited; merchant ledger to be synced by T+1", NONE);
 
     case "DELAYED":

@@ -124,7 +124,13 @@ export function AppNav({ items, user }: { items: NavItem[]; user: { name: string
       {/* Mobile / tablet top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-2 lg:hidden">
         {brand}
-        <button type="button" className="rounded-md border border-line-strong px-3 py-1.5 text-sm" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          className="rounded-md border border-line-strong px-3 py-1.5 text-sm"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
           Menu
         </button>
       </div>

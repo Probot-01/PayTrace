@@ -5,7 +5,11 @@ import { appSettings } from "@/db/schema";
 import { DEFAULT_RECON_CONFIG, type ReconConfig } from "@/domain/recon/engine";
 import { audit, type AuditActor } from "../audit";
 
-const minutes = z.number().int().min(1).max(24 * 60);
+const minutes = z
+  .number()
+  .int()
+  .min(1)
+  .max(24 * 60);
 
 export const settingsSchema = z.object({
   amountTolerancePaise: z.number().int().min(0).max(100_00),

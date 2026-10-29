@@ -60,7 +60,8 @@ export function ExceptionActions({
     }
   }
 
-  const transition = (action: string, extra: Record<string, unknown> = {}, success = "Saved.") => run("transition", { action, version, ...extra }, success);
+  const transition = (action: string, extra: Record<string, unknown> = {}, success = "Saved.") =>
+    run("transition", { action, version, ...extra }, success);
 
   return (
     <div className="space-y-4">
@@ -97,7 +98,12 @@ export function ExceptionActions({
       {mode === null ? (
         <div className="flex flex-wrap gap-2">
           {status === "OPEN" ? (
-            <button type="button" className={buttonStyles.secondary} disabled={busy} onClick={() => transition("start_review", {}, "Review started.")}>
+            <button
+              type="button"
+              className={buttonStyles.secondary}
+              disabled={busy}
+              onClick={() => transition("start_review", {}, "Review started.")}
+            >
               Start review
             </button>
           ) : null}
@@ -122,7 +128,9 @@ export function ExceptionActions({
             </>
           ) : null}
           {status === "PENDING_APPROVAL" && (!canApprove || exception.proposedBy === user.id) ? (
-            <p className="text-sm text-ink-2">Waiting for {exception.proposedBy === user.id ? "another" : "a"} supervisor to approve.</p>
+            <p className="text-sm text-ink-2">
+              Waiting for {canApprove && exception.proposedBy === user.id ? "another" : "a"} supervisor to approve.
+            </p>
           ) : null}
           {(status === "RESOLVED" || status === "DISMISSED") && canApprove ? (
             <button type="button" className={buttonStyles.secondary} disabled={busy} onClick={() => setMode("reopen")}>
@@ -137,18 +145,26 @@ export function ExceptionActions({
             e.preventDefault();
             const f = new FormData(e.currentTarget);
             const note = String(f.get("note") ?? "");
-            if (mode === "resolve") transition("resolve", { resolutionCode: f.get("resolutionCode"), note }, needsApproval ? "Sent for supervisor approval." : "Resolved.");
+            if (mode === "resolve")
+              transition("resolve", { resolutionCode: f.get("resolutionCode"), note }, needsApproval ? "Sent for supervisor approval." : "Resolved.");
             else if (mode === "dismiss") transition("dismiss", { note }, needsApproval ? "Sent for supervisor approval." : "Dismissed.");
             else if (mode === "reject") transition("reject", { note }, "Sent back to the analyst.");
             else transition("reopen", { note }, "Reopened.");
           }}
         >
           <p className="text-sm font-medium">
-            {mode === "resolve" ? "Resolve exception" : mode === "dismiss" ? "Dismiss as not a real break" : mode === "reject" ? "Send back for more work" : "Reopen exception"}
+            {mode === "resolve"
+              ? "Resolve exception"
+              : mode === "dismiss"
+                ? "Dismiss as not a real break"
+                : mode === "reject"
+                  ? "Send back for more work"
+                  : "Reopen exception"}
           </p>
           {(mode === "resolve" || mode === "dismiss") && needsApproval ? (
             <p className="text-xs text-warning">
-              This affects {formatINR(exception.affectedPaise)}, at or above the {formatINR(approvalThresholdPaise)} approval threshold. A supervisor must approve it.
+              This affects {formatINR(exception.affectedPaise)}, at or above the {formatINR(approvalThresholdPaise)} approval threshold. A supervisor
+              must approve it.
             </p>
           ) : null}
           {mode === "resolve" ? (

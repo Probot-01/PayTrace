@@ -32,10 +32,19 @@ export function ConfirmAction({
 
   return (
     <>
-      <button type="button" className={variant === "danger" ? buttonStyles.secondary + " text-critical" : buttonStyles.secondary} onClick={() => ref.current?.showModal()}>
+      <button
+        type="button"
+        className={variant === "danger" ? buttonStyles.secondary + " text-critical" : buttonStyles.secondary}
+        onClick={() => ref.current?.showModal()}
+      >
         {label}
       </button>
-      <dialog ref={ref} aria-labelledby="confirm-title" className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-line bg-surface p-5 text-ink" onClose={() => setError(null)}>
+      <dialog
+        ref={ref}
+        aria-labelledby="confirm-title"
+        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-line bg-surface p-5 text-ink"
+        onClose={() => setError(null)}
+      >
         <h2 id="confirm-title" className="text-lg font-semibold">
           {title}
         </h2>

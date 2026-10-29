@@ -12,8 +12,7 @@ export class AppError extends Error {
 }
 
 export const badRequest = (message: string, details?: unknown) => new AppError(400, "BAD_REQUEST", message, details);
-export const validationFailed = (details: unknown, message = "Some fields are invalid.") =>
-  new AppError(422, "VALIDATION_FAILED", message, details);
+export const validationFailed = (details: unknown, message = "Some fields are invalid.") => new AppError(422, "VALIDATION_FAILED", message, details);
 export const unauthenticated = () => new AppError(401, "UNAUTHENTICATED", "Your session has expired. Sign in again.");
 export const forbidden = (message = "You do not have permission to do that.") => new AppError(403, "FORBIDDEN", message);
 export const notFound = (what = "Record") => new AppError(404, "NOT_FOUND", `${what} not found.`);

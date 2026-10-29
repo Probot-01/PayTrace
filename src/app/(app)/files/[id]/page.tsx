@@ -59,15 +59,19 @@ export default async function FilePage({ params, searchParams }: { params: Promi
         }
       />
       <Card title="Records" description={`SHA-256 ${file.sha256.slice(0, 16)}…`}>
-        <div className="-mx-4 -mb-4 overflow-x-auto">
+        <div className="-mx-4 -mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col" className="num">Line</th>
+                <th scope="col" className="num">
+                  Line
+                </th>
                 <th scope="col">Reference</th>
                 <th scope="col">Type</th>
                 <th scope="col">Method</th>
-                <th scope="col" className="num">Amount</th>
+                <th scope="col" className="num">
+                  Amount
+                </th>
                 <th scope="col">Status</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Merchant</th>

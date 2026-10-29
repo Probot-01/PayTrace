@@ -1,0 +1,59 @@
+# Local production-like stack: PostgreSQL, one-off migrations, web server and background worker.
+#   cp .env.example .env   (set POSTGRES_PASSWORD and APP_URL)
+#   docker compose up --build
+#   docker compose run --rm migrate npm run create-admin -- --email you@example.com --name "Your Name"
+name: paytrace
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://paytrace:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/paytrace
+  APP_URL: ${APP_URL:-http://localhost:3000}
+  SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
+  SMTP_URL: ${SMTP_URL:-}
+  MAIL_FROM: ${MAIL_FROM:-PayTrace <no-reply@paytrace.local>}
+
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: paytrace
+      POSTGRES_USER: paytrace
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paytrace -d paytrace"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build: { context: ., target: tools }
+    environment: *app-env
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  web:
+    build: { context: ., target: web }
+    environment:
+      <<: *app-env
+      EMBEDDED_WORKER: "false"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  worker:
+    build: { context: ., target: tools }
+    environment: *app-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+volumes:
+  pgdata:

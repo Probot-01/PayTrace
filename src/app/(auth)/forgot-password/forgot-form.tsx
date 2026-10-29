@@ -29,7 +29,8 @@ export function ForgotForm() {
     return (
       <div className="space-y-4">
         <p role="status" className="rounded-md border border-good/40 bg-good-soft px-3 py-2 text-sm text-good">
-          If that email belongs to an active account, a reset link is on its way. If email is not configured for your organisation, ask an administrator to issue a reset link from the Users page.
+          If that email belongs to an active account, a reset link is on its way. If email is not configured for your organisation, ask an
+          administrator to issue a reset link from the Users page.
         </p>
         <Link href="/login" className="text-sm text-accent hover:underline">
           Back to sign in
@@ -45,7 +46,7 @@ export function ForgotForm() {
         {busy ? "Sending…" : "Send reset link"}
       </button>
       <p className="text-center text-sm">
-        <Link href="/login" className="text-accent hover:underline">
+        <Link href="/login" className="text-accent underline underline-offset-2 hover:decoration-2">
           Back to sign in
         </Link>
       </p>

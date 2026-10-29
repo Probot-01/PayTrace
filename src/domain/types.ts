@@ -69,13 +69,7 @@ export const CATEGORY_LABELS: Record<ExceptionCategory, string> = {
 export const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
-export const EXCEPTION_STATUSES = [
-  "OPEN",
-  "IN_REVIEW",
-  "PENDING_APPROVAL",
-  "RESOLVED",
-  "DISMISSED",
-] as const;
+export const EXCEPTION_STATUSES = ["OPEN", "IN_REVIEW", "PENDING_APPROVAL", "RESOLVED", "DISMISSED"] as const;
 export type ExceptionStatus = (typeof EXCEPTION_STATUSES)[number];
 
 export const EXCEPTION_STATUS_LABELS: Record<ExceptionStatus, string> = {

@@ -88,8 +88,21 @@ export function UploadForm({ defaultDate }: { defaultDate: string }) {
           {(p) => <Input {...p} type="date" name="businessDate" required defaultValue={defaultDate} />}
         </Field>
       </div>
-      <Field label="CSV file" error={fieldErrors.file?.[0]} hint={`UTF-8 CSV in the PayTrace column layout, up to ${MAX_MB} MB / 250,000 rows. Card numbers are rejected.`}>
-        {(p) => <Input {...p} type="file" name="file" accept=".csv,text/csv" required className="file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1" />}
+      <Field
+        label="CSV file"
+        error={fieldErrors.file?.[0]}
+        hint={`UTF-8 CSV in the PayTrace column layout, up to ${MAX_MB} MB / 250,000 rows. Card numbers are rejected.`}
+      >
+        {(p) => (
+          <Input
+            {...p}
+            type="file"
+            name="file"
+            accept=".csv,text/csv"
+            required
+            className="file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1"
+          />
+        )}
       </Field>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className={buttonStyles.primary} disabled={busy}>
@@ -102,7 +115,8 @@ export function UploadForm({ defaultDate }: { defaultDate: string }) {
       {rowErrors ? (
         <div className="rounded-md border border-critical/40">
           <p className="border-b border-critical/30 bg-critical-soft px-3 py-2 text-sm font-medium text-critical">
-            {formatCount(rowErrors.total)} problem(s) found{rowErrors.total > rowErrors.rows.length ? `; first ${rowErrors.rows.length} shown` : ""}. Fix them and upload again.
+            {formatCount(rowErrors.total)} problem(s) found{rowErrors.total > rowErrors.rows.length ? `; first ${rowErrors.rows.length} shown` : ""}.
+            Fix them and upload again.
           </p>
           <div className="max-h-72 overflow-auto">
             <table className="data-table">

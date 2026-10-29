@@ -44,7 +44,7 @@ export function LoginForm({ next }: { next: string }) {
         {busy ? "Signing in…" : "Sign in"}
       </button>
       <p className="text-center text-sm">
-        <Link href="/forgot-password" className="text-accent hover:underline">
+        <Link href="/forgot-password" className="text-accent underline underline-offset-2 hover:decoration-2">
           Forgot your password?
         </Link>
       </p>

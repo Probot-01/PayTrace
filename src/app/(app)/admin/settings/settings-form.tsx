@@ -54,10 +54,23 @@ export function SettingsForm({ initial }: { initial: AppSettings }) {
       <fieldset className="grid gap-4 sm:grid-cols-2">
         <legend className="mb-2 text-sm font-semibold">Matching</legend>
         <Field label="Amount tolerance (₹)" hint="Differences at or below this are treated as equal.">
-          {(p) => <Input {...p} type="number" name="amountTolerance" min={0} max={100} step="0.01" defaultValue={rupees(initial.amountTolerancePaise)} required />}
+          {(p) => (
+            <Input
+              {...p}
+              type="number"
+              name="amountTolerance"
+              min={0}
+              max={100}
+              step="0.01"
+              defaultValue={rupees(initial.amountTolerancePaise)}
+              required
+            />
+          )}
         </Field>
         <Field label="Duplicate request window (minutes)" hint="Same customer, merchant and amount debited twice within this window.">
-          {(p) => <Input {...p} type="number" name="duplicateWindowMinutes" min={1} max={1440} defaultValue={initial.duplicateWindowMinutes} required />}
+          {(p) => (
+            <Input {...p} type="number" name="duplicateWindowMinutes" min={1} max={1440} defaultValue={initial.duplicateWindowMinutes} required />
+          )}
         </Field>
       </fieldset>
       <fieldset>
@@ -76,7 +89,9 @@ export function SettingsForm({ initial }: { initial: AppSettings }) {
           {(p) => <Input {...p} type="number" name="highValue" min={1000} step="1" defaultValue={rupees(initial.highValuePaise)} required />}
         </Field>
         <Field label="Maker-checker threshold (₹)" hint="Analyst resolutions at or above this need a supervisor's approval. 0 = always.">
-          {(p) => <Input {...p} type="number" name="approvalThreshold" min={0} step="1" defaultValue={rupees(initial.approvalThresholdPaise)} required />}
+          {(p) => (
+            <Input {...p} type="number" name="approvalThreshold" min={0} step="1" defaultValue={rupees(initial.approvalThresholdPaise)} required />
+          )}
         </Field>
         <Field label="RBI policy repo rate (%)" hint="NEFT/RTGS penal interest is repo + 2%. Update after each MPC decision.">
           {(p) => <Input {...p} type="number" name="repoRate" min={0} max={20} step="0.01" defaultValue={initial.repoRateBps / 100} required />}

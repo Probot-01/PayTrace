@@ -12,7 +12,10 @@ export default async function SettingsPage() {
   const settings = await getSettings();
   return (
     <>
-      <PageHeader title="Reconciliation settings" description="Thresholds the engine and the exception workflow use. Changes apply to new runs; each run keeps a snapshot of the settings it used. Every change is audited." />
+      <PageHeader
+        title="Reconciliation settings"
+        description="Thresholds the engine and the exception workflow use. Changes apply to new runs; each run keeps a snapshot of the settings it used. Every change is audited."
+      />
       <Card className="max-w-3xl">
         <SettingsForm initial={settings} />
       </Card>

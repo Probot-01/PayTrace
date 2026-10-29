@@ -29,7 +29,9 @@ export default async function SimulatorPage() {
         ) : null}
         <Card title="Previous simulations" className={can(user.role, "simulations:create") ? "xl:col-span-2" : "xl:col-span-5"} id="list">
           {sims.length === 0 ? (
-            <EmptyState title="No simulations yet">Generate a business day to see how the reconciliation engine handles each failure mode.</EmptyState>
+            <EmptyState title="No simulations yet">
+              Generate a business day to see how the reconciliation engine handles each failure mode.
+            </EmptyState>
           ) : (
             <ul className="divide-y divide-line">
               {sims.map((s) => (
@@ -39,7 +41,8 @@ export default async function SimulatorPage() {
                       {s.name}
                     </Link>
                     <p className="text-xs text-ink-3">
-                      {formatBusinessDate(s.businessDate)} · {s.status === "COMPLETED" ? `${formatCount(s.transactionCount)} transactions` : "—"} · {formatDateTime(s.createdAt)}
+                      {formatBusinessDate(s.businessDate)} · {s.status === "COMPLETED" ? `${formatCount(s.transactionCount)} transactions` : "—"} ·{" "}
+                      {formatDateTime(s.createdAt)}
                     </p>
                   </div>
                   <JobStatusBadge status={s.status} />

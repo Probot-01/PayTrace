@@ -18,13 +18,19 @@ export default async function NewRunPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader title="New reconciliation run" breadcrumb={[{ href: "/runs", label: "Reconciliation runs" }]} description="Choose a business date and the participant files to compare. The latest file from each participant is selected by default." />
+      <PageHeader
+        title="New reconciliation run"
+        breadcrumb={[{ href: "/runs", label: "Reconciliation runs" }]}
+        description="Choose a business date and the participant files to compare. The latest file from each participant is selected by default."
+      />
       {dates.length === 0 ? (
         <EmptyState
           title="No participant files yet"
           action={
             <div className="flex gap-2">
-              <ButtonLink href="/simulator" variant="primary">Simulate a day</ButtonLink>
+              <ButtonLink href="/simulator" variant="primary">
+                Simulate a day
+              </ButtonLink>
               <ButtonLink href="/files">Upload files</ButtonLink>
             </div>
           }
@@ -39,7 +45,8 @@ export default async function NewRunPage({ searchParams }: { searchParams: Promi
               <AutoSubmitSelect name="date" defaultValue={selected} className="rounded-md border border-line-strong bg-surface px-2 py-2 text-sm">
                 {dates.map((d) => (
                   <option key={d.businessDate} value={d.businessDate}>
-                    {formatBusinessDate(d.businessDate)} · {d.files} file{d.files === 1 ? "" : "s"} from {d.sources} participant{d.sources === 1 ? "" : "s"}
+                    {formatBusinessDate(d.businessDate)} · {d.files} file{d.files === 1 ? "" : "s"} from {d.sources} participant
+                    {d.sources === 1 ? "" : "s"}
                   </option>
                 ))}
               </AutoSubmitSelect>

@@ -31,7 +31,14 @@ export async function createSimulation(actor: AuditActor, input: z.infer<typeof 
       .values({ name: input.name, businessDate: input.config.businessDate, config: input.config, createdBy: actor.id })
       .returning();
     await enqueueJob(tx, "SIMULATE", sim.id);
-    await audit(actor, "simulation.create", "simulation", sim.id, { name: input.name, count: input.config.transactionCount, seed: input.config.seed }, tx);
+    await audit(
+      actor,
+      "simulation.create",
+      "simulation",
+      sim.id,
+      { name: input.name, count: input.config.transactionCount, seed: input.config.seed },
+      tx,
+    );
     return sim;
   });
 }
@@ -141,7 +148,10 @@ export async function executeSimulation(id: string) {
 }
 
 export async function markSimulationFailed(id: string, error: string) {
-  await getDb().update(simulations).set({ status: "FAILED", error: error.slice(0, 500) }).where(eq(simulations.id, id));
+  await getDb()
+    .update(simulations)
+    .set({ status: "FAILED", error: error.slice(0, 500) })
+    .where(eq(simulations.id, id));
 }
 
 export async function listSimulations(limit = 50) {
@@ -155,10 +165,21 @@ export async function getSimulation(id: string) {
   const files = await db.select().from(sourceFiles).where(eq(sourceFiles.simulationId, id)).orderBy(sourceFiles.source);
   const runs = files.length
     ? await db
-        .selectDistinct({ id: reconRuns.id, status: reconRuns.status, createdAt: reconRuns.createdAt, matched: reconRuns.matchedTransactions, total: reconRuns.totalTransactions })
+        .selectDistinct({
+          id: reconRuns.id,
+          status: reconRuns.status,
+          createdAt: reconRuns.createdAt,
+          matched: reconRuns.matchedTransactions,
+          total: reconRuns.totalTransactions,
+        })
         .from(reconRuns)
         .innerJoin(reconRunFiles, eq(reconRunFiles.runId, reconRuns.id))
-        .where(inArray(reconRunFiles.fileId, files.map((f) => f.id)))
+        .where(
+          inArray(
+            reconRunFiles.fileId,
+            files.map((f) => f.id),
+          ),
+        )
         .orderBy(desc(reconRuns.createdAt))
     : [];
   return { sim, files, runs };
@@ -178,7 +199,10 @@ export interface DetectionAccuracy {
 export async function detectionAccuracy(simulationId: string, runId: string): Promise<DetectionAccuracy> {
   const db = getDb();
   const [truth, raised] = await Promise.all([
-    db.select({ txnRef: simTransactions.txnRef, fault: simTransactions.injectedFault }).from(simTransactions).where(eq(simTransactions.simulationId, simulationId)),
+    db
+      .select({ txnRef: simTransactions.txnRef, fault: simTransactions.injectedFault })
+      .from(simTransactions)
+      .where(eq(simTransactions.simulationId, simulationId)),
     db.select({ txnRef: exceptions.txnRef, category: exceptions.category }).from(exceptions).where(eq(exceptions.runId, runId)),
   ]);
   const raisedByRef = new Map<string, Set<string>>();

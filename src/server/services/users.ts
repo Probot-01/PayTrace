@@ -49,7 +49,11 @@ export async function listAssignableUsers() {
 
 export async function createUser(actor: AuditActor, input: z.infer<typeof createUserSchema>) {
   const db = getDb();
-  const existing = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${input.email}`).limit(1);
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = ${input.email}`)
+    .limit(1);
   if (existing.length) throw conflict("A user with this email already exists.");
   const [user] = await db.insert(users).values({ email: input.email, name: input.name, role: input.role }).returning(publicColumns);
   const { url } = await createInviteLink(user.id);
@@ -110,7 +114,14 @@ export async function issueUserResetLink(actor: AuditActor, id: string) {
 
 export async function listSessionsForUser(userId: string) {
   return getDb()
-    .select({ id: sessions.id, createdAt: sessions.createdAt, lastSeenAt: sessions.lastSeenAt, expiresAt: sessions.expiresAt, ip: sessions.ip, userAgent: sessions.userAgent })
+    .select({
+      id: sessions.id,
+      createdAt: sessions.createdAt,
+      lastSeenAt: sessions.lastSeenAt,
+      expiresAt: sessions.expiresAt,
+      ip: sessions.ip,
+      userAgent: sessions.userAgent,
+    })
     .from(sessions)
     .where(eq(sessions.userId, userId))
     .orderBy(asc(sessions.createdAt));

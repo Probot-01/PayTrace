@@ -13,7 +13,21 @@ describe("simulate", () => {
 
   it("produces every transaction field the brief asks for", () => {
     const t = simulate(base).transactions[0];
-    for (const k of ["txnRef", "customerId", "merchantId", "amountPaise", "method", "initiatedAt", "issuingBank", "acquiringBank", "switchStatus", "bankStatus", "merchantStatus", "settlementStatus", "refundStatus"]) {
+    for (const k of [
+      "txnRef",
+      "customerId",
+      "merchantId",
+      "amountPaise",
+      "method",
+      "initiatedAt",
+      "issuingBank",
+      "acquiringBank",
+      "switchStatus",
+      "bankStatus",
+      "merchantStatus",
+      "settlementStatus",
+      "refundStatus",
+    ]) {
       expect(t).toHaveProperty(k);
     }
   });

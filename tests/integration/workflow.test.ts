@@ -83,7 +83,12 @@ describe("exception workflow (maker-checker, four eyes, optimistic locking)", ()
 
   it("sends a high-value analyst resolution for approval, which only a different supervisor can give", async () => {
     const e = await pick();
-    const proposed = await transitionException(actor(analyst), e.id, { action: "resolve", version: e.version, resolutionCode: "MANUAL_REVERSAL_ISSUED", note: "Reversal confirmed in issuer file" });
+    const proposed = await transitionException(actor(analyst), e.id, {
+      action: "resolve",
+      version: e.version,
+      resolutionCode: "MANUAL_REVERSAL_ISSUED",
+      note: "Reversal confirmed in issuer file",
+    });
     expect(proposed.status).toBe("PENDING_APPROVAL");
 
     const selfApprove = await transitionException(actor(analyst), e.id, { action: "approve", version: proposed.version }).catch((x) => x);
@@ -100,10 +105,20 @@ describe("exception workflow (maker-checker, four eyes, optimistic locking)", ()
   it("stops a supervisor approving their own proposal", async () => {
     const e = await pick();
     const proposed = await transitionException(actor(analyst), e.id, { action: "dismiss", version: e.version, note: "Not a real break: test data" });
-    const sentBack = await transitionException(actor(supervisor), e.id, { action: "reject", version: proposed.version, note: "Need the bank confirmation" });
+    const sentBack = await transitionException(actor(supervisor), e.id, {
+      action: "reject",
+      version: proposed.version,
+      note: "Need the bank confirmation",
+    });
     expect(sentBack.status).toBe("IN_REVIEW");
-    const again = await transitionException(actor(analyst), e.id, { action: "dismiss", version: sentBack.version, note: "Bank confirmed, see ticket 42" });
-    const own = await transitionException({ ...actor(supervisor2), id: analyst.id }, e.id, { action: "approve", version: again.version }).catch((x) => x);
+    const again = await transitionException(actor(analyst), e.id, {
+      action: "dismiss",
+      version: sentBack.version,
+      note: "Bank confirmed, see ticket 42",
+    });
+    const own = await transitionException({ ...actor(supervisor2), id: analyst.id }, e.id, { action: "approve", version: again.version }).catch(
+      (x) => x,
+    );
     expect(own.status).toBe(403);
     const ok = await transitionException(actor(supervisor2), e.id, { action: "approve", version: again.version });
     expect(ok.status).toBe("DISMISSED");
@@ -118,7 +133,12 @@ describe("exception workflow (maker-checker, four eyes, optimistic locking)", ()
 
   it("lets a supervisor resolve directly and reopen", async () => {
     const e = await pick();
-    const r = await transitionException(actor(supervisor), e.id, { action: "resolve", version: e.version, resolutionCode: "OTHER", note: "Handled by the bank" });
+    const r = await transitionException(actor(supervisor), e.id, {
+      action: "resolve",
+      version: e.version,
+      resolutionCode: "OTHER",
+      note: "Handled by the bank",
+    });
     expect(r.status).toBe("RESOLVED");
     const reopened = await transitionException(actor(supervisor2), e.id, { action: "reopen", version: r.version, note: "Customer complained again" });
     expect(reopened.status).toBe("IN_REVIEW");
@@ -137,9 +157,16 @@ describe("API authorisation and CSRF", () => {
   });
 
   it("forbids viewers from working exceptions, even with a valid session", async () => {
-    const [e] = await getDb().select().from(exceptions).where(and(eq(exceptions.runId, runId), eq(exceptions.status, "OPEN"))).limit(1);
+    const [e] = await getDb()
+      .select()
+      .from(exceptions)
+      .where(and(eq(exceptions.runId, runId), eq(exceptions.status, "OPEN")))
+      .limit(1);
     const cookie = await sessionCookieFor(viewer.id);
-    const res = await transitionRoute(apiRequest(`/api/v1/exceptions/${e.id}/transition`, { json: { action: "start_review", version: e.version }, cookie }), params({ id: e.id }));
+    const res = await transitionRoute(
+      apiRequest(`/api/v1/exceptions/${e.id}/transition`, { json: { action: "start_review", version: e.version }, cookie }),
+      params({ id: e.id }),
+    );
     expect(res.status).toBe(403);
   });
 
@@ -157,7 +184,10 @@ describe("API authorisation and CSRF", () => {
 
   it("returns 400 for a malformed id instead of a server error", async () => {
     const cookie = await sessionCookieFor(analyst.id);
-    const res = await transitionRoute(apiRequest("/api/v1/exceptions/not-a-uuid/transition", { json: { action: "start_review", version: 1 }, cookie }), params({ id: "not-a-uuid" }));
+    const res = await transitionRoute(
+      apiRequest("/api/v1/exceptions/not-a-uuid/transition", { json: { action: "start_review", version: 1 }, cookie }),
+      params({ id: "not-a-uuid" }),
+    );
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
   });
@@ -173,8 +203,7 @@ describe("API authorisation and CSRF", () => {
 });
 
 describe("participant file upload", () => {
-  const csv = (ref: string) =>
-    CSV_HEADER_LINE + `${ref},,PAYMENT,UPI,250.00,INR,SUCCESS,CUST9,MER9,HDFC,ICIC,2026-10-28T10:00:00+05:30\r\n`;
+  const csv = (ref: string) => CSV_HEADER_LINE + `${ref},,PAYMENT,UPI,250.00,INR,SUCCESS,CUST9,MER9,HDFC,ICIC,2026-10-28T10:00:00+05:30\r\n`;
   const upload = (cookie: string, content: string, name = "issuer.csv") => {
     const form = new FormData();
     form.set("source", "ISSUER");

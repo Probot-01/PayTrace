@@ -38,7 +38,11 @@ export async function runDashboard(runId: string) {
   const open = and(eq(exceptions.runId, runId), inArray(exceptions.status, OPEN_EXCEPTION_STATUSES));
 
   const [statusRows, pointRows, [breach], queue] = await Promise.all([
-    db.select({ status: exceptions.status, n: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) }).from(exceptions).where(eq(exceptions.runId, runId)).groupBy(exceptions.status),
+    db
+      .select({ status: exceptions.status, n: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) })
+      .from(exceptions)
+      .where(eq(exceptions.runId, runId))
+      .groupBy(exceptions.status),
     db.select({ point: exceptions.failurePoint, n: count() }).from(exceptions).where(eq(exceptions.runId, runId)).groupBy(exceptions.failurePoint),
     db
       .select({ n: count(), compensation: compensationExpr(settings.repoRateBps) })
@@ -57,7 +61,10 @@ export async function runDashboard(runId: string) {
       })
       .from(exceptions)
       .where(and(open, eq(exceptions.requiresManual, true)))
-      .orderBy(desc(sql`case ${exceptions.severity} when 'CRITICAL' then 4 when 'HIGH' then 3 when 'MEDIUM' then 2 else 1 end`), desc(exceptions.affectedPaise))
+      .orderBy(
+        desc(sql`case ${exceptions.severity} when 'CRITICAL' then 4 when 'HIGH' then 3 when 'MEDIUM' then 2 else 1 end`),
+        desc(exceptions.affectedPaise),
+      )
       .limit(8),
   ]);
 
@@ -106,9 +113,18 @@ export async function portfolio(userId: string) {
   const settings = await getSettings();
   const open = inArray(exceptions.status, OPEN_EXCEPTION_STATUSES);
   const [[totals], [breached], [mine], [pendingApproval], categories] = await Promise.all([
-    db.select({ n: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) }).from(exceptions).where(open),
-    db.select({ n: count(), compensation: compensationExpr(settings.repoRateBps) }).from(exceptions).where(and(open, lt(exceptions.tatDueAt, sql`now()`))),
-    db.select({ n: count() }).from(exceptions).where(and(open, eq(exceptions.assigneeId, userId))),
+    db
+      .select({ n: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) })
+      .from(exceptions)
+      .where(open),
+    db
+      .select({ n: count(), compensation: compensationExpr(settings.repoRateBps) })
+      .from(exceptions)
+      .where(and(open, lt(exceptions.tatDueAt, sql`now()`))),
+    db
+      .select({ n: count() })
+      .from(exceptions)
+      .where(and(open, eq(exceptions.assigneeId, userId))),
     db.select({ n: count() }).from(exceptions).where(eq(exceptions.status, "PENDING_APPROVAL")),
     db
       .select({ category: exceptions.category, n: count(), affected: sum(exceptions.affectedPaise).mapWith(Number) })

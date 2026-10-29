@@ -24,10 +24,7 @@ export async function createRun(actor: AuditActor, input: z.infer<typeof createR
   if (new Set(files.map((f) => f.source)).size < 2) throw badRequest("Select files from at least two different participants.");
   const settings = await getSettings();
   return db.transaction(async (tx) => {
-    const [run] = await tx
-      .insert(reconRuns)
-      .values({ businessDate: input.businessDate, createdBy: actor.id, configSnapshot: settings })
-      .returning();
+    const [run] = await tx.insert(reconRuns).values({ businessDate: input.businessDate, createdBy: actor.id, configSnapshot: settings }).returning();
     await tx.insert(reconRunFiles).values(ids.map((fileId) => ({ runId: run.id, fileId })));
     await enqueueJob(tx, "RECONCILE", run.id);
     await audit(actor, "run.create", "recon_run", run.id, { businessDate: input.businessDate, files: ids.length }, tx);
@@ -133,7 +130,10 @@ export async function executeRun(runId: string) {
 }
 
 export async function markRunFailed(runId: string, error: string) {
-  await getDb().update(reconRuns).set({ status: "FAILED", error: error.slice(0, 500), finishedAt: new Date() }).where(eq(reconRuns.id, runId));
+  await getDb()
+    .update(reconRuns)
+    .set({ status: "FAILED", error: error.slice(0, 500), finishedAt: new Date() })
+    .where(eq(reconRuns.id, runId));
 }
 
 export const runListSchema = z.object({
@@ -179,7 +179,15 @@ export async function getRun(id: string) {
     .limit(1);
   if (!row) throw notFound("Reconciliation run");
   const files = await db
-    .select({ id: sourceFiles.id, source: sourceFiles.source, filename: sourceFiles.filename, rowCount: sourceFiles.rowCount, origin: sourceFiles.origin, simulationId: sourceFiles.simulationId, businessDate: sourceFiles.businessDate })
+    .select({
+      id: sourceFiles.id,
+      source: sourceFiles.source,
+      filename: sourceFiles.filename,
+      rowCount: sourceFiles.rowCount,
+      origin: sourceFiles.origin,
+      simulationId: sourceFiles.simulationId,
+      businessDate: sourceFiles.businessDate,
+    })
     .from(reconRunFiles)
     .innerJoin(sourceFiles, eq(sourceFiles.id, reconRunFiles.fileId))
     .where(eq(reconRunFiles.runId, id))
@@ -216,7 +224,13 @@ export async function listReconTransactions(f: z.infer<typeof txnListSchema>) {
   if (f.method) conds.push(eq(reconTransactions.method, f.method));
   const where = conds.length ? and(...conds) : undefined;
   const [rows, [{ total }]] = await Promise.all([
-    db.select().from(reconTransactions).where(where).orderBy(desc(reconTransactions.txnAt)).limit(f.pageSize).offset((f.page - 1) * f.pageSize),
+    db
+      .select()
+      .from(reconTransactions)
+      .where(where)
+      .orderBy(desc(reconTransactions.txnAt))
+      .limit(f.pageSize)
+      .offset((f.page - 1) * f.pageSize),
     db.select({ total: count() }).from(reconTransactions).where(where),
   ]);
   return { rows, total };
@@ -235,7 +249,14 @@ export async function traceTransaction(txnRef: string) {
       .limit(200),
     db.select().from(reconTransactions).where(eq(reconTransactions.txnRef, txnRef)).orderBy(desc(reconTransactions.id)).limit(20),
     db
-      .select({ id: exceptions.id, category: exceptions.category, status: exceptions.status, severity: exceptions.severity, runId: exceptions.runId, createdAt: exceptions.createdAt })
+      .select({
+        id: exceptions.id,
+        category: exceptions.category,
+        status: exceptions.status,
+        severity: exceptions.severity,
+        runId: exceptions.runId,
+        createdAt: exceptions.createdAt,
+      })
       .from(exceptions)
       .where(eq(exceptions.txnRef, txnRef))
       .orderBy(desc(exceptions.createdAt))

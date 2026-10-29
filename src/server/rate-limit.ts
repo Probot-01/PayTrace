@@ -24,5 +24,7 @@ export async function hitRateLimit(key: string, limit: number, windowSeconds: nu
 }
 
 export async function clearRateLimit(key: string) {
-  await getDb().delete(rateLimits).where(sql`${rateLimits.key} = ${key}`);
+  await getDb()
+    .delete(rateLimits)
+    .where(sql`${rateLimits.key} = ${key}`);
 }

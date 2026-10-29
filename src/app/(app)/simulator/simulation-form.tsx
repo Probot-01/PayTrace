@@ -91,10 +91,16 @@ export function SimulationForm({ defaultDate }: { defaultDate: string }) {
             </Select>
           )}
         </Field>
-        <Field label="Name">{(p) => <Input {...p} name="name" required minLength={3} maxLength={80} defaultValue={`${SIMULATION_PRESETS[presetKey].label} ${defaultDate}`} />}</Field>
+        <Field label="Name">
+          {(p) => (
+            <Input {...p} name="name" required minLength={3} maxLength={80} defaultValue={`${SIMULATION_PRESETS[presetKey].label} ${defaultDate}`} />
+          )}
+        </Field>
         <Field label="Business date">{(p) => <Input {...p} type="date" name="businessDate" required defaultValue={defaultDate} />}</Field>
         <Field label="Payment intents" hint="10 to 100,000. Duplicate requests and refunds add rows.">
-          {(p) => <Input {...p} type="number" name="transactionCount" min={10} max={100000} step={1} required defaultValue={preset.transactionCount} />}
+          {(p) => (
+            <Input {...p} type="number" name="transactionCount" min={10} max={100000} step={1} required defaultValue={preset.transactionCount} />
+          )}
         </Field>
         <Field label="Random seed" hint="The same seed and settings reproduce the same day exactly.">
           {(p) => <Input {...p} type="number" name="seed" min={1} max={2147483647} required defaultValue={seed} />}

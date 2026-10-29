@@ -2,18 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AutoSubmitSelect } from "@/components/client/auto-submit-select";
 import { TrendChart } from "@/components/client/trend-chart";
-import {
-  AccessDenied,
-  BarList,
-  ButtonLink,
-  Card,
-  EmptyState,
-  MethodTag,
-  PageHeader,
-  SeverityBadge,
-  StatTile,
-  StatusBadge,
-} from "@/components/ui";
+import { AccessDenied, BarList, ButtonLink, Card, EmptyState, MethodTag, PageHeader, SeverityBadge, StatTile, StatusBadge } from "@/components/ui";
 import { CATEGORY_LABELS, EXCEPTION_CATEGORIES, PAYMENT_METHODS, SOURCE_SHORT_LABELS } from "@/domain/types";
 import { formatBusinessDate, formatDateTime, relativeDue, shortBusinessDate } from "@/lib/format";
 import { formatCount, formatINR, formatINRCompact, formatPercent } from "@/lib/money";
@@ -70,14 +59,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         title="Reconciliation overview"
         description={
           <>
-            Business date <strong>{formatBusinessDate(run.businessDate)}</strong> · run finished {formatDateTime(run.finishedAt)} · {formatCount(stats.recordsProcessed)} participant records compared
+            Business date <strong>{formatBusinessDate(run.businessDate)}</strong> · run finished {formatDateTime(run.finishedAt)} ·{" "}
+            {formatCount(stats.recordsProcessed)} participant records compared
           </>
         }
         actions={
-          <form method="get" className="flex items-end gap-2">
-            <label className="text-sm">
+          <form method="get" className="flex w-full min-w-0 items-end gap-2 sm:w-auto">
+            <label className="min-w-0 flex-1 text-sm">
               <span className="mb-1 block text-xs font-medium text-ink-3">Run</span>
-              <AutoSubmitSelect name="run" defaultValue={runId} className="rounded-md border border-line-strong bg-surface px-2 py-2 text-sm">
+              <AutoSubmitSelect
+                name="run"
+                defaultValue={runId}
+                className="w-full max-w-full rounded-md border border-line-strong bg-surface px-2 py-2 text-sm"
+              >
                 {runs.map((r) => (
                   <option key={r.id} value={r.id}>
                     {formatBusinessDate(r.businessDate)} · {formatCount(r.total)} txns · {formatDateTime(r.createdAt)}
@@ -93,14 +87,41 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       />
 
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Total transactions" value={formatCount(stats.totalTransactions)} sub={`${formatINRCompact(stats.totalValuePaise)} processed`} />
-        <StatTile label="Successful" value={formatCount(stats.successful)} sub={formatPercent(stats.successful / (stats.totalTransactions || 1)) + " of total"} />
+        <StatTile
+          label="Total transactions"
+          value={formatCount(stats.totalTransactions)}
+          sub={`${formatINRCompact(stats.totalValuePaise)} processed`}
+        />
+        <StatTile
+          label="Successful"
+          value={formatCount(stats.successful)}
+          sub={formatPercent(stats.successful / (stats.totalTransactions || 1)) + " of total"}
+        />
         <StatTile label="Failed" value={formatCount(stats.failed)} sub={formatPercent(stats.failed / (stats.totalTransactions || 1)) + " of total"} />
-        <StatTile label="Pending at cutoff" value={formatCount(stats.pending)} sub="Uncertain final status" tone={stats.pending ? "warning" : undefined} />
-        <StatTile label="Reconciliation rate" value={formatPercent(stats.reconciliationRate)} sub={`${formatCount(stats.matched)} fully matched`} tone={stats.reconciliationRate >= 0.98 ? "good" : undefined} />
+        <StatTile
+          label="Pending at cutoff"
+          value={formatCount(stats.pending)}
+          sub="Uncertain final status"
+          tone={stats.pending ? "warning" : undefined}
+        />
+        <StatTile
+          label="Reconciliation rate"
+          value={formatPercent(stats.reconciliationRate)}
+          sub={`${formatCount(stats.matched)} fully matched`}
+          tone={stats.reconciliationRate >= 0.98 ? "good" : undefined}
+        />
         <StatTile label="Exceptions" value={formatCount(stats.exceptions)} sub={`${formatCount(data.openCount)} still open`} />
-        <StatTile label="Transaction value affected" value={formatINRCompact(stats.affectedValuePaise)} sub={`${formatINRCompact(data.openAffected)} unresolved`} />
-        <StatTile label="Needs manual investigation" value={formatCount(stats.manualReview)} sub="No automatic playbook" tone={stats.manualReview ? "critical" : undefined} />
+        <StatTile
+          label="Transaction value affected"
+          value={formatINRCompact(stats.affectedValuePaise)}
+          sub={`${formatINRCompact(data.openAffected)} unresolved`}
+        />
+        <StatTile
+          label="Needs manual investigation"
+          value={formatCount(stats.manualReview)}
+          sub="No automatic playbook"
+          tone={stats.manualReview ? "critical" : undefined}
+        />
       </dl>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -111,7 +132,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               formatValue={formatCount}
               items={categories
                 .sort((a, b) => b.v!.count - a.v!.count)
-                .map(({ c, v }) => ({ key: c, label: CATEGORY_LABELS[c], value: v!.count, detail: formatINRCompact(v!.affectedPaise), href: runLink(`&category=${c}`) }))}
+                .map(({ c, v }) => ({
+                  key: c,
+                  label: CATEGORY_LABELS[c],
+                  value: v!.count,
+                  detail: formatINRCompact(v!.affectedPaise),
+                  href: runLink(`&category=${c}`),
+                }))}
             />
           ) : (
             <p className="text-sm text-ink-2">No exceptions in this run: every transaction matched across all participants.</p>
@@ -122,7 +149,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <BarList
               ariaLabel="Exceptions by failure point"
               formatValue={formatCount}
-              items={data.failurePoints.map((f) => ({ key: f.point, label: SOURCE_SHORT_LABELS[f.point], value: f.count, href: runLink(`&failurePoint=${f.point}`) }))}
+              items={data.failurePoints.map((f) => ({
+                key: f.point,
+                label: SOURCE_SHORT_LABELS[f.point],
+                value: f.count,
+                href: runLink(`&failurePoint=${f.point}`),
+              }))}
             />
           ) : (
             <p className="text-sm text-ink-2">Nothing to locate.</p>
@@ -170,11 +202,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-ink-3">Compensation follows RBI&apos;s TAT circular (₹100/day for UPI and cards) and repo + 2% penal interest for NEFT/RTGS.</p>
+          <p className="mt-3 text-xs text-ink-3">
+            Compensation follows RBI&apos;s TAT circular (₹100/day for UPI and cards) and repo + 2% penal interest for NEFT/RTGS.
+          </p>
         </Card>
         <Card title="Reconciliation rate, recent runs" className="lg:col-span-2" id="trend">
           <TrendChart
-            points={trend.map((t) => ({ id: t.id, label: shortBusinessDate(t.businessDate), rate: t.rate, total: t.total, exceptions: t.exceptions }))}
+            points={trend.map((t) => ({
+              id: t.id,
+              label: shortBusinessDate(t.businessDate),
+              rate: t.rate,
+              total: t.total,
+              exceptions: t.exceptions,
+            }))}
           />
         </Card>
       </div>
@@ -192,7 +232,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           }
         >
           {data.queue.length ? (
-            <div className="-mx-4 -mb-4 overflow-x-auto">
+            <div className="-mx-4 -mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
               <table className="data-table">
                 <thead>
                   <tr>

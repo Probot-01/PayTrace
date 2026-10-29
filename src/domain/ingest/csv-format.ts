@@ -1,14 +1,7 @@
 import { parse } from "csv-parse/sync";
 import { z } from "zod";
 import { parseRupeesToPaise, paiseToPlain } from "@/lib/money";
-import {
-  PAYMENT_METHODS,
-  RECORD_TYPES,
-  type NormalizedRecord,
-  type PaymentMethod,
-  type RecordStatus,
-  type SourceSystem,
-} from "../types";
+import { PAYMENT_METHODS, RECORD_TYPES, type NormalizedRecord, type PaymentMethod, type RecordStatus, type SourceSystem } from "../types";
 
 /**
  * The participant file format. Every participant (switch, issuer, acquirer, merchant, settlement)
@@ -35,25 +28,60 @@ export const MAX_ROWS = 250_000;
 const MAX_REPORTED_ERRORS = 50;
 
 const STATUS_ALIASES: Record<string, RecordStatus> = {
-  SUCCESS: "SUCCESS", S: "SUCCESS", SUCCESSFUL: "SUCCESS", APPROVED: "SUCCESS", CAPTURED: "SUCCESS",
-  SETTLED: "SUCCESS", COMPLETED: "SUCCESS", CREDITED: "SUCCESS", DEBITED: "SUCCESS", "00": "SUCCESS", PAID: "SUCCESS",
-  FAILED: "FAILED", F: "FAILED", FAILURE: "FAILED", DECLINED: "FAILED", REJECTED: "FAILED", U: "FAILED",
-  UNSETTLED: "FAILED", RETURNED: "FAILED", ERROR: "FAILED",
-  PENDING: "PENDING", P: "PENDING", DEEMED: "PENDING", TIMEOUT: "PENDING", T: "PENDING", PROCESSING: "PENDING",
-  INITIATED: "PENDING", IN_PROGRESS: "PENDING",
-  REVERSED: "REVERSED", R: "REVERSED", REFUNDED: "REVERSED",
+  SUCCESS: "SUCCESS",
+  S: "SUCCESS",
+  SUCCESSFUL: "SUCCESS",
+  APPROVED: "SUCCESS",
+  CAPTURED: "SUCCESS",
+  SETTLED: "SUCCESS",
+  COMPLETED: "SUCCESS",
+  CREDITED: "SUCCESS",
+  DEBITED: "SUCCESS",
+  "00": "SUCCESS",
+  PAID: "SUCCESS",
+  FAILED: "FAILED",
+  F: "FAILED",
+  FAILURE: "FAILED",
+  DECLINED: "FAILED",
+  REJECTED: "FAILED",
+  U: "FAILED",
+  UNSETTLED: "FAILED",
+  RETURNED: "FAILED",
+  ERROR: "FAILED",
+  PENDING: "PENDING",
+  P: "PENDING",
+  DEEMED: "PENDING",
+  TIMEOUT: "PENDING",
+  T: "PENDING",
+  PROCESSING: "PENDING",
+  INITIATED: "PENDING",
+  IN_PROGRESS: "PENDING",
+  REVERSED: "REVERSED",
+  R: "REVERSED",
+  REFUNDED: "REVERSED",
 };
 
 const METHOD_ALIASES: Record<string, PaymentMethod> = {
   UPI: "UPI",
-  DEBIT_CARD: "DEBIT_CARD", DEBIT: "DEBIT_CARD", DC: "DEBIT_CARD",
-  CREDIT_CARD: "CREDIT_CARD", CREDIT: "CREDIT_CARD", CC: "CREDIT_CARD",
+  DEBIT_CARD: "DEBIT_CARD",
+  DEBIT: "DEBIT_CARD",
+  DC: "DEBIT_CARD",
+  CREDIT_CARD: "CREDIT_CARD",
+  CREDIT: "CREDIT_CARD",
+  CC: "CREDIT_CARD",
   NEFT: "NEFT",
   RTGS: "RTGS",
 };
 
 export function normaliseStatus(raw: string): RecordStatus | null {
-  return STATUS_ALIASES[raw.trim().toUpperCase().replace(/[\s-]+/g, "_")] ?? null;
+  return (
+    STATUS_ALIASES[
+      raw
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]+/g, "_")
+    ] ?? null
+  );
 }
 
 /** True when a value looks like a full card number (Luhn-valid, 13–19 digits). We never store PANs. */
@@ -79,7 +107,11 @@ const idPattern = /^[A-Za-z0-9_.-]{1,40}$/;
 const bankPattern = /^[A-Z]{4}$/;
 
 const optional = (schema: z.ZodString) =>
-  z.string().transform((v) => v.trim()).pipe(z.union([z.literal(""), schema])).transform((v) => (v === "" ? null : v));
+  z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.union([z.literal(""), schema]))
+    .transform((v) => (v === "" ? null : v));
 
 const rowSchema = z.object({
   txn_ref: z.string().trim().regex(refPattern, "must be 6–40 letters, digits, '-' or '_'"),
@@ -89,16 +121,20 @@ const rowSchema = z.object({
     .trim()
     .transform((v) => (v === "" ? "PAYMENT" : v.toUpperCase()))
     .pipe(z.enum(RECORD_TYPES, { error: `must be one of ${RECORD_TYPES.join(", ")}` })),
-  payment_method: z
-    .string()
-    .transform((v, ctx) => {
-      const m = METHOD_ALIASES[v.trim().toUpperCase().replace(/[\s-]+/g, "_")];
-      if (!m) {
-        ctx.addIssue({ code: "custom", message: `must be one of ${PAYMENT_METHODS.join(", ")}` });
-        return z.NEVER;
-      }
-      return m;
-    }),
+  payment_method: z.string().transform((v, ctx) => {
+    const m =
+      METHOD_ALIASES[
+        v
+          .trim()
+          .toUpperCase()
+          .replace(/[\s-]+/g, "_")
+      ];
+    if (!m) {
+      ctx.addIssue({ code: "custom", message: `must be one of ${PAYMENT_METHODS.join(", ")}` });
+      return z.NEVER;
+    }
+    return m;
+  }),
   amount: z.string().transform((v, ctx) => {
     const paise = parseRupeesToPaise(v);
     if (paise === null || paise <= 0) {
@@ -180,7 +216,12 @@ export function parseParticipantCsv(content: string, source: SourceSystem): Pars
     };
   }
   if (rows.length > MAX_ROWS) {
-    return { ok: false, errors: [{ line: 0, column: "file", message: `Too many rows (limit ${MAX_ROWS.toLocaleString("en-IN")})` }], totalErrors: 1, rowCount: rows.length };
+    return {
+      ok: false,
+      errors: [{ line: 0, column: "file", message: `Too many rows (limit ${MAX_ROWS.toLocaleString("en-IN")})` }],
+      totalErrors: 1,
+      rowCount: rows.length,
+    };
   }
 
   const errors: RowError[] = [];

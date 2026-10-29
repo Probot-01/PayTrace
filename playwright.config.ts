@@ -12,14 +12,14 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 60_000,
-  globalSetup: "./tests/e2e/global-setup.ts",
   use: { baseURL, trace: "retain-on-failure", screenshot: "only-on-failure" },
   projects: [
     { name: "setup", testMatch: /auth\.setup\.ts/ },
     { name: "desktop", use: { ...devices["Desktop Chrome"] }, dependencies: ["setup"], testIgnore: /auth\.setup\.ts/ },
   ],
   webServer: {
-    command: "node .next/standalone/server.js",
+    // Recreates the e2e database with demo data, then starts the production (standalone) server.
+    command: "npx tsx tests/e2e/prepare.ts && node .next/standalone/server.js",
     url: `${baseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
@@ -32,6 +32,7 @@ export default defineConfig({
       EMBEDDED_WORKER: "true",
       TRUSTED_PROXY_HOPS: "0",
       LOG_LEVEL: "warn",
+      E2E_DATABASE_URL: databaseUrl,
     },
   },
 });

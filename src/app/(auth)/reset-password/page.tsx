@@ -17,7 +17,7 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
       ) : (
         <p className="mt-2 text-sm text-ink-2">
           This page needs the link from your invitation or reset email.{" "}
-          <Link href="/forgot-password" className="text-accent hover:underline">
+          <Link href="/forgot-password" className="text-accent underline underline-offset-2 hover:decoration-2">
             Request a new link
           </Link>
           .

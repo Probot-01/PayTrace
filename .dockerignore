@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+tests/e2e/.auth
+*.tsbuildinfo
+.paytrace-sync.tgz
