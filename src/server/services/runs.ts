@@ -1,8 +1,9 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db";
+import { getDb, withTransaction } from "@/db";
+import { copyRows, type CopyValue } from "@/db/copy";
 import { exceptions, reconRunFiles, reconRuns, reconTransactions, sourceFiles, sourceRecords, users } from "@/db/schema";
-import { reconcile, type ReconStats } from "@/domain/recon/engine";
+import { reconcile, type ReconStats, type TxnResult } from "@/domain/recon/engine";
 import { tatFor } from "@/domain/recon/tat";
 import type { NormalizedRecord } from "@/domain/types";
 import { badRequest, conflict, notFound } from "@/lib/errors";
@@ -36,6 +37,22 @@ export async function createRun(actor: AuditActor, input: z.infer<typeof createR
 
 const CHUNK = 2_000;
 
+const RECON_TXN_COLUMNS = (runId: string) =>
+  [
+    ["run_id", () => runId],
+    ["txn_ref", (t) => t.txnRef],
+    ["method", (t) => t.method],
+    ["amount_paise", (t) => t.amountPaise],
+    ["outcome", (t) => t.outcome],
+    ["matched", (t) => t.matched],
+    ["is_refund", (t) => t.isRefund],
+    ["sources_present", (t) => t.sourcesPresent],
+    ["exception_count", (t) => t.exceptionCount],
+    ["txn_at", (t) => t.txnAt],
+    ["customer_id", (t) => t.customerId],
+    ["merchant_id", (t) => t.merchantId],
+  ] as const satisfies readonly (readonly [string, (t: TxnResult) => CopyValue])[];
+
 /** Worker step: load the run's records, reconcile, and persist results atomically. */
 export async function executeRun(runId: string) {
   const db = getDb();
@@ -68,28 +85,11 @@ export async function executeRun(runId: string) {
 
   const result = reconcile(rows as NormalizedRecord[], toReconConfig(settings as Parameters<typeof toReconConfig>[0]));
 
-  await db.transaction(async (tx) => {
+  await withTransaction(async ({ sql, db: tx }) => {
     // Idempotent on retry: clear partial output from an earlier attempt.
     await tx.delete(exceptions).where(eq(exceptions.runId, runId));
     await tx.delete(reconTransactions).where(eq(reconTransactions.runId, runId));
-    for (let i = 0; i < result.transactions.length; i += CHUNK) {
-      await tx.insert(reconTransactions).values(
-        result.transactions.slice(i, i + CHUNK).map((t) => ({
-          runId,
-          txnRef: t.txnRef,
-          method: t.method,
-          amountPaise: t.amountPaise,
-          outcome: t.outcome,
-          matched: t.matched,
-          isRefund: t.isRefund,
-          sourcesPresent: t.sourcesPresent,
-          exceptionCount: t.exceptionCount,
-          txnAt: t.txnAt,
-          customerId: t.customerId,
-          merchantId: t.merchantId,
-        })),
-      );
-    }
+    await copyRows(sql, "recon_transactions", RECON_TXN_COLUMNS(runId), result.transactions);
     for (let i = 0; i < result.exceptions.length; i += CHUNK) {
       await tx.insert(exceptions).values(
         result.exceptions.slice(i, i + CHUNK).map((e) => {

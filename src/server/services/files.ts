@@ -1,26 +1,43 @@
 import { createHash } from "node:crypto";
 import { and, count, desc, eq, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db";
+import type postgres from "postgres";
+import { getDb, withTransaction } from "@/db";
+import { copyRows, type CopyValue } from "@/db/copy";
 import { reconRunFiles, sourceFiles, sourceRecords } from "@/db/schema";
 import { MAX_UPLOAD_BYTES, parseParticipantCsv, CSV_HEADER_LINE, recordToCsvLine } from "@/domain/ingest/csv-format";
 import { SOURCE_SYSTEMS, type SourceSystem } from "@/domain/types";
 import { badRequest, conflict, notFound, validationFailed } from "@/lib/errors";
-import { audit, type AuditActor, type Tx } from "../audit";
+import { audit, type AuditActor } from "../audit";
 
 export const uploadMetaSchema = z.object({
   source: z.enum(SOURCE_SYSTEMS, { error: "Choose which participant this file comes from." }),
   businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter the business date as YYYY-MM-DD."),
 });
 
-const INSERT_CHUNK = 2_000;
+export type RecordInsert = Omit<typeof sourceRecords.$inferInsert, "id">;
 
-type RecordInsert = typeof sourceRecords.$inferInsert;
+const RECORD_COLUMNS = [
+  ["file_id", (r) => r.fileId],
+  ["source", (r) => r.source],
+  ["line_no", (r) => r.lineNo],
+  ["txn_ref", (r) => r.txnRef],
+  ["parent_ref", (r) => r.parentRef],
+  ["record_type", (r) => r.recordType],
+  ["method", (r) => r.method],
+  ["amount_paise", (r) => r.amountPaise],
+  ["status", (r) => r.status],
+  ["raw_status", (r) => r.rawStatus],
+  ["customer_id", (r) => r.customerId],
+  ["merchant_id", (r) => r.merchantId],
+  ["issuing_bank", (r) => r.issuingBank],
+  ["acquiring_bank", (r) => r.acquiringBank],
+  ["event_at", (r) => r.eventAt],
+] as const satisfies readonly (readonly [string, (r: RecordInsert) => CopyValue])[];
 
-export async function insertRecords(tx: Tx, rows: RecordInsert[]) {
-  for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
-    await tx.insert(sourceRecords).values(rows.slice(i, i + INSERT_CHUNK));
-  }
+/** Bulk-loads participant records inside the caller's transaction. */
+export async function insertRecords(sql: postgres.TransactionSql, rows: RecordInsert[]) {
+  await copyRows(sql, "source_records", RECORD_COLUMNS, rows);
 }
 
 export async function uploadParticipantFile(
@@ -60,7 +77,7 @@ export async function uploadParticipantFile(
   }
 
   const safeName = file.name.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
-  const created = await db.transaction(async (tx) => {
+  const created = await withTransaction(async ({ sql, db: tx }) => {
     const [row] = await tx
       .insert(sourceFiles)
       .values({
@@ -75,7 +92,7 @@ export async function uploadParticipantFile(
       })
       .returning();
     await insertRecords(
-      tx,
+      sql,
       parsed.records.map((r) => ({ ...r, fileId: row.id, source: meta.source })),
     );
     await audit(actor, "file.upload", "source_file", row.id, { source: meta.source, rows: row.rowCount, filename: safeName, sha256 }, tx);
@@ -180,4 +197,30 @@ export async function latestFilesForDate(businessDate: string) {
   const picked = new Map<SourceSystem, (typeof rows)[number]>();
   for (const r of rows) if (!picked.has(r.source)) picked.set(r.source, r);
   return [...picked.values()];
+}
+
+/** Business dates that have at least one participant file, newest first. */
+export async function datesWithFiles(limit = 60) {
+  const rows = await getDb()
+    .select({ businessDate: sourceFiles.businessDate, files: count(), sources: sql<number>`count(distinct ${sourceFiles.source})::int` })
+    .from(sourceFiles)
+    .groupBy(sourceFiles.businessDate)
+    .orderBy(desc(sourceFiles.businessDate))
+    .limit(limit);
+  return rows;
+}
+
+export async function filesForDate(businessDate: string) {
+  return getDb()
+    .select({
+      id: sourceFiles.id,
+      source: sourceFiles.source,
+      filename: sourceFiles.filename,
+      rowCount: sourceFiles.rowCount,
+      origin: sourceFiles.origin,
+      createdAt: sourceFiles.createdAt,
+    })
+    .from(sourceFiles)
+    .where(eq(sourceFiles.businessDate, businessDate))
+    .orderBy(sourceFiles.source, desc(sourceFiles.createdAt));
 }

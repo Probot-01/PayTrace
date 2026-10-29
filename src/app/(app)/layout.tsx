@@ -17,7 +17,7 @@ const NAV: (NavItem & { permission: Permission })[] = [
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireSession();
-  const items = NAV.filter((n) => can(user.role, n.permission)).map(({ permission: _p, ...rest }) => rest);
+  const items: NavItem[] = NAV.filter((n) => can(user.role, n.permission)).map((n) => ({ href: n.href, label: n.label, group: n.group }));
   return (
     <div className="lg:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">

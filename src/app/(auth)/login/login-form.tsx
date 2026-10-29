@@ -19,6 +19,7 @@ export function LoginForm({ next }: { next: string }) {
     setFieldErrors({});
     try {
       await api("/api/auth/login", { json: { email: form.get("email"), password: form.get("password") } });
+      // Full page load so the new session cookie applies to every server component.
       window.location.assign(next);
     } catch (err) {
       if (err instanceof ApiError) {

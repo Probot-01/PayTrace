@@ -23,6 +23,7 @@ export function ResetForm({ token }: { token: string }) {
     setError(null);
     try {
       await api("/api/auth/reset-password", { json: { token, password } });
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- all sessions were revoked; start clean
       window.location.assign("/login?reset=1");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");

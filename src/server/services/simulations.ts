@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db";
+import { getDb, withTransaction } from "@/db";
+import { copyRows, type CopyValue } from "@/db/copy";
 import { exceptions, reconRunFiles, reconRuns, simTransactions, simulations, sourceFiles } from "@/db/schema";
 import { CSV_HEADER_LINE, recordToCsvLine } from "@/domain/ingest/csv-format";
 import {
@@ -9,6 +10,7 @@ import {
   simulate,
   simulationConfigSchema,
   type InjectedFault,
+  type SimTransaction,
   type SimulationConfig,
 } from "@/domain/simulator/simulate";
 import { SOURCE_SYSTEMS, type ExceptionCategory, type NormalizedRecord } from "@/domain/types";
@@ -34,7 +36,28 @@ export async function createSimulation(actor: AuditActor, input: z.infer<typeof 
   });
 }
 
-const CHUNK = 2_000;
+const SIM_TXN_COLUMNS = (simulationId: string) =>
+  [
+    ["simulation_id", () => simulationId],
+    ["txn_ref", (t) => t.txnRef],
+    ["parent_ref", (t) => t.parentRef],
+    ["kind", (t) => t.kind],
+    ["customer_id", (t) => t.customerId],
+    ["merchant_id", (t) => t.merchantId],
+    ["amount_paise", (t) => t.amountPaise],
+    ["method", (t) => t.method],
+    ["initiated_at", (t) => t.initiatedAt],
+    ["issuing_bank", (t) => t.issuingBank],
+    ["acquiring_bank", (t) => t.acquiringBank],
+    ["switch_status", (t) => t.switchStatus],
+    ["bank_status", (t) => t.bankStatus],
+    ["merchant_status", (t) => t.merchantStatus],
+    ["settlement_status", (t) => t.settlementStatus],
+    ["refund_status", (t) => t.refundStatus],
+    ["injected_fault", (t) => t.injectedFault],
+    ["failure_stage", (t) => t.failureStage],
+    ["timeline", (t) => t.timeline as unknown as unknown[]],
+  ] as const satisfies readonly (readonly [string, (t: SimTransaction) => CopyValue])[];
 
 /** Worker step: generate the dataset and write one participant file per source. Idempotent on retry. */
 export async function executeSimulation(id: string) {
@@ -47,15 +70,10 @@ export async function executeSimulation(id: string) {
   const config = simulationConfigSchema.parse(sim.config) as SimulationConfig;
   const output = simulate(config);
 
-  await db.transaction(async (tx) => {
+  await withTransaction(async ({ sql, db: tx }) => {
     await tx.delete(simTransactions).where(eq(simTransactions.simulationId, id));
     await tx.delete(sourceFiles).where(eq(sourceFiles.simulationId, id));
-
-    for (let i = 0; i < output.transactions.length; i += CHUNK) {
-      await tx.insert(simTransactions).values(
-        output.transactions.slice(i, i + CHUNK).map((t) => ({ ...t, simulationId: id, timeline: t.timeline })),
-      );
-    }
+    await copyRows(sql, "sim_transactions", SIM_TXN_COLUMNS(id), output.transactions);
 
     const bySource = new Map<string, NormalizedRecord[]>();
     for (const r of output.records) {
@@ -65,9 +83,14 @@ export async function executeSimulation(id: string) {
     }
     for (const source of SOURCE_SYSTEMS) {
       const recs = bySource.get(source) ?? [];
+      // Hash and size of the CSV the file would download as, computed in one pass.
       const hash = createHash("sha256").update(`${id}:${source}:`).update(CSV_HEADER_LINE);
-      for (const r of recs) hash.update(recordToCsvLine(r));
-      const csvSize = recs.reduce((s, r) => s + recordToCsvLine(r).length, CSV_HEADER_LINE.length);
+      let csvSize = CSV_HEADER_LINE.length;
+      for (const r of recs) {
+        const line = recordToCsvLine(r);
+        hash.update(line);
+        csvSize += line.length;
+      }
       const [file] = await tx
         .insert(sourceFiles)
         .values({
@@ -83,7 +106,7 @@ export async function executeSimulation(id: string) {
         })
         .returning();
       await insertRecords(
-        tx,
+        sql,
         recs.map((r, i) => ({
           fileId: file.id,
           source,

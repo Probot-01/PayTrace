@@ -40,3 +40,17 @@ export async function closeDb() {
 }
 
 export { schema };
+
+/**
+ * Runs `fn` in one transaction, exposing both the raw client (for COPY) and a Drizzle instance
+ * bound to the same transaction.
+ */
+export async function withTransaction<T>(fn: (t: { sql: postgres.TransactionSql; db: Database }) => Promise<T>): Promise<T> {
+  const root = getSqlClient();
+  const result = await root.begin((sql) => {
+    // A transaction handle lacks the root client's `options`, which Drizzle reads for type parsers.
+    const bound = Object.assign(sql, { options: root.options }) as unknown as postgres.Sql;
+    return fn({ sql, db: drizzle(bound, { schema, casing: "snake_case" }) });
+  });
+  return result as T;
+}

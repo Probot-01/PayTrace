@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local sync artifact
 .paytrace-sync.tgz
+tests/e2e/.auth/
+/test-results/
+/playwright-report/

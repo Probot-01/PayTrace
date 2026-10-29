@@ -64,6 +64,8 @@ export function SignOutButton({ className }: { className?: string }) {
         try {
           await api("/api/auth/logout", { method: "POST" });
         } finally {
+          // Full reload so no client state from the old session survives.
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.assign("/login");
         }
       }}
@@ -75,7 +77,6 @@ export function SignOutButton({ className }: { className?: string }) {
 
 export function AppNav({ items, user }: { items: NavItem[]; user: { name: string; role: string } }) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -84,8 +85,6 @@ export function AppNav({ items, user }: { items: NavItem[]; user: { name: string
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
   }, [open]);
-
-  useEffect(() => setOpen(false), [pathname]);
 
   const brand = (
     <Link href="/" className="flex items-center gap-2 px-3">

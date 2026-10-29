@@ -31,6 +31,7 @@ export async function api<T = unknown>(url: string, init: { method?: string; jso
     throw new ApiError("Could not reach the server. Check your connection and try again.", 0, "NETWORK", null);
   }
   if (res.status === 401 && !url.startsWith("/api/auth/")) {
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload drops stale client state
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
     throw new ApiError("Your session has expired.", 401, "UNAUTHENTICATED", null);
   }
